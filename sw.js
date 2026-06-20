@@ -3,7 +3,7 @@
  * Cache the app shell for offline quote generation.
  * All GAS/Google requests bypass the cache (always go to network).
  */
-const CACHE_NAME = 'vla-gla-v1';
+const CACHE_NAME = 'vla-gla-v2';
 const SHELL = [
   './',
   './index.html',
