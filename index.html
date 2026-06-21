@@ -680,9 +680,10 @@ input,select{min-height:38px}
       <div class="view" id="view-mdb">
         <div class="view-hdr">
           <h1>Member Database</h1>
-          <p>Persistent member records. Import CSV / Excel or add individually. Select members when generating a Full Quote.</p>
+          <p>Persistent member records, kept independently per company. Import CSV / Excel or add individually. Select members when generating a Full Quote.</p>
         </div>
         <div class="mdb-bar">
+          <select id="mdb-company-select" onchange="changeMDBCompany(this.value)" style="margin-right:8px"></select>
           <input class="mdb-srch" type="text" id="mdb-search2" placeholder="Search members&hellip;" oninput="renderMDBStandalone()">
           <button class="btn" onclick="document.getElementById('mdb-file-in2').click()">&#11014; Import CSV/Excel</button>
           <input type="file" id="mdb-file-in2" accept=".xlsx,.xls,.csv" style="display:none" onchange="importMDBFile(this.files[0]);renderMDBStandalone()">
@@ -1741,6 +1742,12 @@ function generatePDF(){
     doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(255,255,255);
     doc.text('Page '+p+' of '+totalPages,W-MR,ftrY+ftrH*0.65,{align:'right'});
   }
+
+  // Save/download the generated PDF — this was missing, which caused
+  // generatePDF() to build the document in memory and silently discard it.
+  const safeCompany=(Q.company||'Quote').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'');
+  const safeRef=(Q.ref||new Date().toISOString().slice(0,10).replace(/-/g,'')).replace(/[^a-z0-9-]+/gi,'_');
+  doc.save(`VLA-GLA-${safeCompany}-${safeRef}.pdf`);
 }  // close generatePDF
 
 async function gasFetchQuotes(){
@@ -2866,7 +2873,9 @@ function openUMModal(editKey){
   }
   document.getElementById('um-pwd').value='';
   document.getElementById('um-pwd2').value='';
-  document.getElementById('um-modal').style.display='flex';
+  // Modal visibility is controlled via the 'open' class (see openUMModal/closeUMModal
+  // below) — setting inline style.display here used to override classList.remove('open')
+  // on Cancel, leaving the modal stuck open.
 }
 function closeUMModal(){document.getElementById('um-modal').style.display='none';}
 function saveUMModal(){
@@ -2903,12 +2912,66 @@ function deleteUMUser(uname){
 
 /* ═══════════════════════════════════════════════════════
    MEMBER DATABASE JS
+   Keyed per company: each GLA scheme/company census is stored
+   independently under 'members:<companyRef>'. getMDB()/saveMDB()
+   default to MDB_CONTEXT, which is kept fresh by whichever screen
+   is currently active — renderMDB() sets it to the wizard's Q.company
+   on every render; the standalone Member DB view sets it via its
+   company selector (changeMDBCompany). This avoids a stale context
+   leaking from one screen into the other.
 ═══════════════════════════════════════════════════════ */
-function getMDB(){try{return JSON.parse(localStorage.getItem('vla_member_db')||'[]');}catch{return[];}}
-function saveMDB(db){localStorage.setItem('vla_member_db',JSON.stringify(db));}
+const MDB_UNASSIGNED='_unassigned';
+let MDB_CONTEXT=null;  // always reflects whichever census is currently on screen (wizard or standalone view)
+
+function mdbKeyFor(companyName){
+  const c=(companyName||'').trim();
+  if(!c)return MDB_UNASSIGNED;
+  return c.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||MDB_UNASSIGNED;
+}
+function mdbStorageKey(companyName){
+  return 'members:'+mdbKeyFor(companyName);
+}
+// List of {key,label} for every company that currently has a saved census
+function listMDBCompanies(){
+  const out=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.indexOf('members:')===0){
+      const ref=k.slice('members:'.length);
+      out.push({key:ref,label:ref===MDB_UNASSIGNED?'(Unassigned)':ref});
+    }
+  }
+  return out.sort((a,b)=>a.label.localeCompare(b.label));
+}
+function migrateLegacyMDB(targetStorageKey){
+  // One-time migration: if the old flat global list still has data and the
+  // target per-company bucket is empty, move it across so nothing is lost.
+  try{
+    const legacy=localStorage.getItem('vla_member_db');
+    if(!legacy)return;
+    const existing=localStorage.getItem(targetStorageKey);
+    if(existing&&JSON.parse(existing).length)return;  // target already has data, don't clobber
+    const parsed=JSON.parse(legacy);
+    if(Array.isArray(parsed)&&parsed.length){
+      localStorage.setItem(targetStorageKey,JSON.stringify(parsed));
+    }
+    localStorage.removeItem('vla_member_db');
+  }catch{/* ignore malformed legacy data */}
+}
+function getMDB(companyName){
+  const ref=companyName!=null?companyName:MDB_CONTEXT;
+  const sk=mdbStorageKey(ref);
+  migrateLegacyMDB(sk);
+  try{return JSON.parse(localStorage.getItem(sk)||'[]');}catch{return[];}
+}
+function saveMDB(db,companyName){
+  const ref=companyName!=null?companyName:MDB_CONTEXT;
+  localStorage.setItem(mdbStorageKey(ref),JSON.stringify(db));
+}
 let MDB_SEL=new Set();
 
 function renderMDB(){
+  MDB_CONTEXT=mdbKeyFor(Q.company);
   const db=getMDB();
   const comm=Q.date||new Date().toISOString().slice(0,10);
   const srch=(document.getElementById('mdb-search')?.value||'').toLowerCase();
@@ -2963,7 +3026,9 @@ function openMDBModal(idx){
   document.getElementById('mdb-m-dob').value=m.dob||'';
   document.getElementById('mdb-m-sal').value=m.salary||'';
   document.getElementById('mdb-m-err').style.display='none';
-  document.getElementById('mdb-modal').style.display='flex';
+  // Modal visibility is controlled via the 'open' class (see openAddMDB/closeMDBModal
+  // below) — setting inline style.display here used to override classList.remove('open')
+  // on Cancel, leaving the modal stuck open.
 }
 function closeMDBModal(){document.getElementById('mdb-modal').style.display='none';}
 function saveMDBModal(){
@@ -2981,7 +3046,11 @@ function saveMDBModal(){
   const db=getMDB();
   const entry={name,gender,dob,salary};
   if(idx>=0){db[idx]=entry;}else{db.push(entry);}
-  saveMDB(db);closeMDBModal();renderMDB();
+  saveMDB(db);closeMDBModal();
+  // Refresh whichever Member DB table is actually on screen — the modal is
+  // shared between the wizard's step-2 picker and the standalone admin view.
+  if(document.getElementById('mdb-tbody'))renderMDB();
+  if(document.getElementById('mdb-tbody2'))renderMDBStandalone();
 }
 function deleteMDBMember(idx){
   if(!confirm('Remove this member from the database?'))return;
@@ -3118,8 +3187,26 @@ window.onload=function(){
 // Extra helpers for new layout
 function showMemberDB(){
   showView('view-mdb');
+  populateMDBCompanySelect();
   renderMDBStandalone();
   setNavActive('nav-mdb');
+}
+function populateMDBCompanySelect(){
+  const sel=document.getElementById('mdb-company-select');
+  if(!sel)return;
+  const companies=listMDBCompanies();
+  // Always offer the company currently active in the quote wizard, even if it
+  // has no saved census yet, so a new scheme can be started from this screen.
+  const currentRef=mdbKeyFor(Q.company);
+  if(!companies.some(c=>c.key===currentRef)){
+    companies.push({key:currentRef,label:currentRef===MDB_UNASSIGNED?'(Unassigned)':(Q.company||'(Unassigned)')});
+  }
+  MDB_CONTEXT=currentRef;
+  sel.innerHTML=companies.map(c=>`<option value="${c.key}"${c.key===MDB_CONTEXT?' selected':''}>${c.label}</option>`).join('');
+}
+function changeMDBCompany(key){
+  MDB_CONTEXT=key;
+  renderMDBStandalone();
 }
 function renderMDBStandalone(){
   const db=getMDB();
