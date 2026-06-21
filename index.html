@@ -1371,7 +1371,7 @@ function fullQuote(members,q,adm){
 /* ── end fallback engine ─────────────────────────────────────── */
 
 // ADM_DEF: UI fallback defaults only — GAS uses its own at calc time
-const ADM_DEF={expDiv:0.70,ciLoad:0.20,disFac:0.40,adFac:0.10,spSetback:3,parentOffset:20,childMort:0.003,ciMaxAge:75,validDays:30,funeralMin:500000,funeralMax:7500000,gasUrl:''};
+const ADM_DEF={expDiv:0.70,ciLoad:0.20,disFac:0.40,adFac:0.10,spSetback:3,parentOffset:20,childMort:0.003,ciMaxAge:75,validDays:30,funeralMin:500000,funeralMax:7500000,gasUrl:'https://script.google.com/macros/s/AKfycbzePkRp_m4w0sHdwLLwhOYVO0K7-mzPEQBfum8coQfIlxdX_P3QZMGobzOvb1YwYZNw/exec'};
 
 /* ═══════════════════════════════════════════════════════
    HELPERS
@@ -1394,7 +1394,13 @@ const fmtP=(n,d=2)=>((+n||0)*100).toFixed(d)+'%';
    STATE
 ═══════════════════════════════════════════════════════ */
 let MODE='fast',STEP=1,MEMBERS=[],RESULTS=null;
-let ADM={...ADM_DEF, ...(JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{})};
+let ADM=(()=>{
+  const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
+  // A blank/missing gasUrl saved from before the hardcoded default existed
+  // should not shadow it — only a genuine non-empty override wins.
+  if(!saved.gasUrl)delete saved.gasUrl;
+  return {...ADM_DEF, ...saved};
+})();
 let SAVED_QUOTES=JSON.parse(localStorage.getItem('vla_gla_saved')||'[]');
 
 const Q={
@@ -1552,12 +1558,13 @@ function generatePDF(){
   });
     // Cover Options — cols sum to CW=174mm: [42]+[28]+[52]+[52]
   const covCols=[['Cover',42,'left'],['% of Payroll',28,'right'],['Annual Premium (MWK)',52,'right'],['Total GLA Benefit (MWK)',52,'right']];
+  const covColsIndent=[['Cover',42-2.5,'left'],['% of Payroll',28,'right'],['Annual Premium (MWK)',52,'right'],['Total GLA Benefit (MWK)',52,'right']];
   y=tblHdr(covCols,ML,y,8.5);
   pdfOptions.forEach(({k,pa},i)=>{
     const isCur=k===+Q.mult;
     const bg=isCur?[238,228,215]:i%2===0?[255,255,255]:[248,245,241];
     if(isCur){doc.setFillColor(...M);doc.rect(ML,y,2.5,7.5,'F');}
-    y=tblRow(covCols,[k+'× Annual Salary',((pa/totSal)*100).toFixed(2)+'%',fmt(pa),fmt(totSal*k)],ML+(isCur?2.5:0),y,7.5,bg);
+    y=tblRow(isCur?covColsIndent:covCols,[k+'× Annual Salary',((pa/totSal)*100).toFixed(2)+'%',fmt(pa),fmt(totSal*k)],ML+(isCur?2.5:0),y,7.5,bg);
   });
   y+=6;
 
@@ -1571,12 +1578,13 @@ function generatePDF(){
   doc.setTextColor(...TX);y+=10;
   const funCols=[['Life Assured',70,'left'],['Number Covered',40,'center'],['Benefit on Death (MWK)',64,'right']];
   y=tblHdr(funCols,ML,y,8.5);
+  const fNc=+(Q.f_nCh||0),fNp=+(Q.f_nPar||0);
   const funRows=[
     ['Member',1,fmt(Q.f_mBen||0)],
     [inc_sp?'Spouse':'—',inc_sp?1:'—',inc_sp?fmt(+(Q.f_sBen||Q.f_mBen||0)):'—'],
-    ['Child (per child)',Q.f_nc||0,Q.f_nc?fmt(Math.round((Q.f_mBen||0)*(+Q.f_cPct||0.5))):'—'],
+    ['Child (per child)',fNc||0,fNc?fmt(Math.round((Q.f_mBen||0)*(+Q.f_cPct||0.5))):'—'],
   ];
-  if(Q.f_pPct&&+Q.f_pPct>0)funRows.push(['Parent (per parent)',Q.f_np||0,fmt(Math.round((Q.f_mBen||0)*(+Q.f_pPct||0)))]);
+  if(fNp>0)funRows.push(['Parent (per parent)',fNp,fmt(Math.round((Q.f_mBen||0)*(+Q.f_pPct||0.25)))]);
   funRows.forEach((row,i)=>{ y=tblRow(funCols,row,ML,y,7.5,i%2===0?[255,255,255]:[248,245,241]); });
   y+=4;
 
@@ -1751,11 +1759,14 @@ function generatePDF(){
 }  // close generatePDF
 
 async function gasFetchQuotes(){
-  const url=getGasUrl();if(!url)return null;
+  const url=ADM.gasUrl;
+  if(!url||location.protocol==='file:'||!navigator.onLine)return null;
+  const token=getSessionToken();
+  if(!token)return null; // not logged in (yet) — nothing to fetch with
   try{
-    const r=await fetch(`${url}?action=getQuotes`);
+    const r=await fetch(`${url}?action=getQuotes&limit=100&token=${encodeURIComponent(token)}`,{redirect:'follow'});
     const j=await r.json();
-    return j.quotes||[];
+    return j.status==='ok'?(j.quotes||[]):null;
   }catch{return null;}
 }
 
@@ -1913,8 +1924,12 @@ function syncQ2Fast(){
   Q.sec=document.getElementById('q-sec').value;
 }
 function syncQ3(){
-  Q.f_nCh=Math.min(+Q.f_nCh||2,4);
-  Q.f_nPar=Math.min(+Q.f_nPar||0,4);
+  // Use Number.isFinite rather than `||` fallback — `||` treats an
+  // intentional 0 as falsy and silently replaces it with the default,
+  // which previously made "0 children" or "0 parents" impossible to save.
+  const ch=+Q.f_nCh, pa=+Q.f_nPar;
+  Q.f_nCh=Math.min(Number.isFinite(ch)?ch:2,4);
+  Q.f_nPar=Math.min(Number.isFinite(pa)?pa:0,4);
 }
 function syncQ4(){
   Q.disc=Math.max(0,+document.getElementById('q-disc').value)/100;
@@ -1975,7 +1990,8 @@ async function computeResults(){
 async function _calcViaGAS(gasUrl){
   const q={...Q,mode:MODE};
   const qEnc=encodeURIComponent(JSON.stringify(q));
-  let url=gasUrl+'?action=calc&q='+qEnc;
+  const token=getSessionToken();
+  let url=gasUrl+'?action=calc&q='+qEnc+(token?'&token='+encodeURIComponent(token):'');
 
   if(MODE==='full'){
     if(!MEMBERS.length)throw new Error('No members selected.');
@@ -1986,6 +2002,12 @@ async function _calcViaGAS(gasUrl){
   const r=await fetch(url,{redirect:'follow'});
   if(!r.ok)throw new Error('GAS HTTP '+r.status);
   const j=await r.json();
+  // A missing/expired token comes back as {error:'...'} rather than the
+  // usual {status:'error',message:'...'} shape — fold it into the same
+  // throw path so it falls back to the local engine like any other GAS
+  // failure, with no forced redirect (the wizard shouldn't be interrupted
+  // mid-quote just because the session token happened to expire).
+  if(j.error)throw new Error(j.error);
   if(j.status!=='ok')throw new Error(j.message||'GAS error');
 
   RESULTS=j.results;
@@ -2111,6 +2133,9 @@ function renderSummary(){
    RENDER: BENEFIT STEP UI
 ═══════════════════════════════════════════════════════ */
 function renderBenefits(){
+  // Clamp a dependant count to [0,4] without the `||` falsy-coercion bug
+  // (Math.min(+v||2,4) used to turn an intentional 0 back into the default).
+  const clampCount=(v,def)=>{const n=+v;return Math.min(Number.isFinite(n)?n:def,4);};
   // ── Issue #4: GLA multiple as dropdown ──────────────────────────────────
   const mr=document.getElementById('mult-row');
   const funeralOpts=(()=>{
@@ -2153,7 +2178,7 @@ function renderBenefits(){
          ${Q.f_scope==='member_and_dependants'?`
          <div class="fld">
            <label>Children (avg, max 4)</label>
-           <input type="number" min="0" max="4" value="${Math.min(+Q.f_nCh||2,4)}" onchange="Q.f_nCh=Math.min(+this.value,4)">
+           <input type="number" min="0" max="4" value="${clampCount(Q.f_nCh,2)}" onchange="Q.f_nCh=Math.min(+this.value,4);renderBenefits()">
          </div>
          <div class="fld">
            <label>Child Benefit % of Member</label>
@@ -2165,7 +2190,7 @@ function renderBenefits(){
          </div>
          <div class="fld">
            <label>Parents (max 4)</label>
-           <input type="number" min="0" max="4" value="${Math.min(+Q.f_nPar||0,4)}" onchange="Q.f_nPar=Math.min(+this.value,4);renderBenefits()">
+           <input type="number" min="0" max="4" value="${clampCount(Q.f_nPar,0)}" onchange="Q.f_nPar=Math.min(+this.value,4);renderBenefits()">
          </div>
          ${+Q.f_nPar>0?`<div class="fld">
            <label>Parent Benefit % of Member</label>
@@ -2286,10 +2311,14 @@ function clearMsg(id){const el=document.getElementById(id);if(el)el.innerHTML=''
 ═══════════════════════════════════════════════════════ */
 
 function gasPost(data){
-  // Fire-and-forget push to GAS Sheets — silent fail, localStorage is primary store
+  // Fire-and-forget push to GAS Sheets — silent fail, localStorage is primary store.
+  // If the session token has expired, this just silently fails like any other
+  // network/GAS error; the quote is already safe in localStorage either way.
   const url=ADM.gasUrl;
   if(!url||location.protocol==='file:'||!navigator.onLine)return;
-  fetch(url+'?action=saveQuote&data='+encodeURIComponent(JSON.stringify(data)),
+  const token=getSessionToken();
+  if(!token)return; // not logged in (yet) — nothing to authenticate the push with
+  fetch(url+'?action=saveQuote&token='+encodeURIComponent(token)+'&data='+encodeURIComponent(JSON.stringify(data)),
         {redirect:'follow'}).catch(function(){});
 }
 
@@ -2462,14 +2491,61 @@ document.getElementById('q-n')?.addEventListener('input',updateTierNote);
 
 /* ═══════════════════════════════════════════════════════
    LOGIN / AUTH
+   Authentication is token-based: the password travels to GAS only
+   once, at login. GAS returns a short-lived session token, which is
+   what every subsequent call carries instead — the password itself
+   is never stored or sent again. See gasCall() below.
 ═══════════════════════════════════════════════════════ */
-const DEFAULT_USERS={
-  'VLA Admin':{pwd:'1234',role:'admin',fullName:'VLA Administrator',email:'admin@vanguardlifemw.com'},
-  'VLA Agent':{pwd:'1234',role:'agent',fullName:'VLA Agent',email:'agent@vanguardlifemw.com'},
-};
-function getUsers(){try{return JSON.parse(localStorage.getItem('vla_gla_users')||'null')||{...DEFAULT_USERS};}catch{return{...DEFAULT_USERS};}}
-function saveUserStore(u){localStorage.setItem('vla_gla_users',JSON.stringify(u));}
 let CURRENT_USER=null;
+let USERS_CACHE=null; // last list fetched from GAS, used by the Manage Users screen
+
+function getSessionToken(){ return localStorage.getItem('vla_gla_token')||''; }
+function setSessionToken(t){ if(t)localStorage.setItem('vla_gla_token',t); }
+function clearSession(){
+  localStorage.removeItem('vla_gla_token');
+  CURRENT_USER=null;
+}
+
+// Shared GAS call helper. Every action except 'login' automatically
+// carries the session token; if GAS reports the session has expired,
+// the local session is cleared and the user is sent back to the login
+// screen. login() itself is the one call that establishes the token
+// in the first place, so it's exempt from carrying one.
+async function gasCall(action,params){
+  if(!ADM.gasUrl)return{status:'error',message:'No backend configured. Contact your administrator.'};
+  if(location.protocol==='file:')return{status:'error',message:'Open this app through a web server, not as a local file.'};
+  if(!navigator.onLine)return{status:'error',message:'You are offline. Connect to the internet and try again.'};
+  const allParams={...(params||{})};
+  if(action!=='login'){
+    const token=getSessionToken();
+    if(token)allParams.token=token;
+  }
+  try{
+    const qs=Object.entries(allParams).map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('&');
+    const r=await fetch(`${ADM.gasUrl}?action=${action}${qs?'&'+qs:''}`,{redirect:'follow'});
+    const j=await r.json();
+    if(j&&j.error==='Session expired. Please log in again.'){
+      clearSession();
+      document.getElementById('app-layout').style.display='none';
+      document.getElementById('login-screen').style.display='flex';
+      const err=document.getElementById('login-err');
+      if(err){err.textContent='Your session has expired. Please log in again.';err.style.display='block';}
+      return{status:'error',message:'Session expired. Please log in again.'};
+    }
+    return j;
+  }catch{
+    return{status:'error',message:'Could not reach the server. Check your connection and try again.'};
+  }
+}
+// Back-compat alias — gasAuthCall was the prior name for this helper.
+const gasAuthCall=gasCall;
+
+async function fetchUsers(force){
+  if(USERS_CACHE&&!force)return USERS_CACHE;
+  const res=await gasCall('getUsers',{});
+  USERS_CACHE=res.status==='ok'?res.users:[];
+  return USERS_CACHE;
+}
 
 /* ═══════════════════════════════════════════════════════
    ROLE-BASED UI CONTROL
@@ -2499,20 +2575,26 @@ function applyRoleUI(role){
 
 
 
-function doLogin(){
+async function doLogin(){
   const u=document.getElementById('login-user').value.trim();
   const p=document.getElementById('login-pass').value;
-  const users=getUsers();
-  const user=users[u];
   const err=document.getElementById('login-err');
-  if(user&&user.pwd===p){
-    CURRENT_USER={name:u,role:user.role,fullName:user.fullName||u,email:user.email||''};
+  const btn=document.querySelector('.login-btn');
+  if(!u||!p){err.textContent='Enter a username and password.';err.style.display='block';return;}
+  if(btn){btn.disabled=true;btn.textContent='Signing in…';}
+  const res=await gasCall('login',{username:u,password:p});
+  if(btn){btn.disabled=false;btn.textContent='Sign In';}
+  if(res.status==='ok'){
+    const user=res.user;
+    setSessionToken(res.token);
+    document.getElementById('login-pass').value=''; // password never lingers, in memory or DOM
+    CURRENT_USER={name:user.username,role:user.role,fullName:user.fullName||user.username,email:user.email||''};
     // Switch screens
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app-layout').style.display='flex';
     // Update user badge in top bar
     const ubEl=document.getElementById('user-badge');
-    if(ubEl)ubEl.textContent=(user.fullName||u).toUpperCase();
+    if(ubEl)ubEl.textContent=(user.fullName||user.username).toUpperCase();
     // Update GAS status
     if(ADM.gasUrl){
       const gp=document.getElementById('gas-pill');
@@ -2522,6 +2604,7 @@ function doLogin(){
     showHome();
     err.style.display='none';
   } else {
+    err.textContent=res.message||'Incorrect username or password.';
     err.style.display='block';
     document.getElementById('login-pass').value='';
     document.getElementById('login-pass').focus();
@@ -2529,7 +2612,7 @@ function doLogin(){
 }
 
 function doLogout(){
-  CURRENT_USER=null;
+  clearSession();
   document.getElementById('app-layout').style.display='none';
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('login-user').value='';
@@ -2540,9 +2623,50 @@ function doLogout(){
 /* ═══════════════════════════════════════════════════════
    QUOTE HISTORY
 ═══════════════════════════════════════════════════════ */
+let GAS_QUOTES=[];     // raw rows last fetched from the Sheet (flat summaries only)
+let HISTORY_MERGED=[]; // SAVED_QUOTES + any GAS-only entries, used by renderHistory()
+
 function showHistory(){
   showView('view-history');
-  renderHistory();
+  renderHistory();          // render immediately with whatever's local
+  syncHistoryFromGAS();     // then refresh in the background once GAS responds
+}
+
+async function syncHistoryFromGAS(){
+  if(!ADM.gasUrl||location.protocol==='file:'||!navigator.onLine)return;
+  const rows=await gasFetchQuotes();
+  if(!rows)return;  // fetch failed or GAS unreachable — keep showing local data
+  GAS_QUOTES=rows;
+  // Only re-render if the History view is still the one on screen
+  if(document.getElementById('view-history')?.classList.contains('on')||
+     document.getElementById('view-history')?.style.display!=='none'){
+    renderHistory();
+  }
+}
+
+// Build the merged list History actually renders: every local SAVED_QUOTES
+// entry (full data — PDF/Revise/Delete all work), plus any GAS row whose
+// ref has no local match (summary-only — read visibility from other devices,
+// since the Sheet never stores the full Q/RESULTS/MEMBERS needed for those
+// actions). Local always wins on a ref collision since it's strictly more
+// complete than what the Sheet can hold.
+function buildMergedHistory(){
+  const localRefs=new Set(SAVED_QUOTES.map(s=>(s.q?.ref||'').trim()).filter(Boolean));
+  const gasOnly=GAS_QUOTES
+    .filter(row=>{
+      const ref=(row.ref||'').trim();
+      return !ref||!localRefs.has(ref);  // keep unrefed rows too, can't dedupe those safely
+    })
+    .map(row=>({
+      id:'gas_'+(row.ref||row.savedAt||Math.random()),
+      mode:row.mode||'fast',
+      source:'gas',
+      savedAt:row.savedAt,
+      q:{company:row.company,ref:row.ref,mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector,prepby:row.prepBy},
+      results:{total_pa:row.annualPremium},
+      members:[],
+    }));
+  return [...SAVED_QUOTES, ...gasOnly];
 }
 
 function renderHistory(){
@@ -2552,7 +2676,8 @@ function renderHistory(){
   const modeF=document.getElementById('qh-mode')?.value||'';
   const isAdmin=CURRENT_USER?.role==='admin';
 
-  const qs=SAVED_QUOTES.filter(s=>{
+  HISTORY_MERGED=buildMergedHistory();
+  const qs=HISTORY_MERGED.filter(s=>{
     if(modeF&&s.mode!==modeF)return false;
     if(search){
       return (s.q?.company||'').toLowerCase().includes(search)||
@@ -2575,13 +2700,23 @@ function renderHistory(){
     const modeLabel=s.mode==='fast'?'Fast Quote':'Full Quote';
     const sec=SECTORS[s.q?.sec]?.l?.split('/')[0]||'';
     const payroll=s.mode==='fast'?+s.q?.sal:(r.totSal||0);
-    const btnPdf=`<button class="qb pdf" onclick="historyPDF('${s.id}')">&#11015; PDF</button>`;
-    const btnWA=`<button class="qb wa" onclick="qhShareWA('${s.id}')">WA</button>`;
-    const btnEmail=`<button class="qb em" onclick="qhShareEmail('${s.id}')">&#9993; Email</button>`;
-    const btnRevise=`<button class="qb" onclick="reviseQuote('${s.id}')">&#9999; Revise</button>`;
-    const btnAdmin=isAdmin
-      ? `<button class="qb del" onclick="deleteQuote('${s.id}')">&#128465; Delete</button>`
-      : `<button class="qb" onclick="viewQuoteSummary('${s.id}')">&#128065; View</button>`;
+    const isGasOnly=s.source==='gas';
+    let actions;
+    if(isGasOnly){
+      // The Sheet only stores a flat summary, not the full quote/member data
+      // these actions need — so GAS-only rows get read-only visibility plus
+      // a note, rather than buttons that would fail or show partial data.
+      actions='<div class="qh-row"><span class="qb" style="cursor:default;opacity:.7" title="Saved from another device — open it there for PDF, Revise or Delete">&#127760; Saved on another device</span></div>';
+    } else {
+      const btnPdf=`<button class="qb pdf" onclick="historyPDF('${s.id}')">&#11015; PDF</button>`;
+      const btnWA=`<button class="qb wa" onclick="qhShareWA('${s.id}')">WA</button>`;
+      const btnEmail=`<button class="qb em" onclick="qhShareEmail('${s.id}')">&#9993; Email</button>`;
+      const btnRevise=`<button class="qb" onclick="reviseQuote('${s.id}')">&#9999; Revise</button>`;
+      const btnAdmin=isAdmin
+        ? `<button class="qb del" onclick="deleteQuote('${s.id}')">&#128465; Delete</button>`
+        : `<button class="qb" onclick="viewQuoteSummary('${s.id}')">&#128065; View</button>`;
+      actions='<div class="qh-row">'+btnPdf+btnWA+btnEmail+'</div><div class="qh-row">'+btnRevise+btnAdmin+'</div>';
+    }
     return '<div class="qh-card">'
       +'<div class="qh-info">'
       +'<div class="qh-co">'+( s.q?.company||'Unnamed Scheme' )+'</div>'
@@ -2590,8 +2725,7 @@ function renderHistory(){
       +'<div class="qh-ts">'+modeLabel+(s.autoSaved?' · Auto-saved':'')+' · '+dt+(payroll?' · Payroll: MWK '+fmt(payroll):'')+'</div>'
       +'</div>'
       +'<div class="qh-acts">'
-      +'<div class="qh-row">'+btnPdf+btnWA+btnEmail+'</div>'
-      +'<div class="qh-row">'+btnRevise+btnAdmin+'</div>'
+      +actions
       +'</div>'
       +'</div>';
   }).join('');
@@ -2723,7 +2857,7 @@ function buildShareCards(sq){
   </div>`;
 
   // CARD 2: Funeral Benefit (if included)
-  const mBen=+(q.f_mBen||0),cPct=+(q.f_cPct||0.5),nc=+(q.f_nc||0);
+  const mBen=+(q.f_mBen||0),cPct=+(q.f_cPct||0.5),nc=+(q.f_nCh||0),npar=+(q.f_nPar||0);
   const hasFun=r.funeral>0||mBen>0;
   let card2='';
   if(hasFun){
@@ -2732,7 +2866,7 @@ function buildShareCards(sq){
       ['Spouse (if selected)',q.inc_sp?'1':'—',q.inc_sp?(+(q.f_sBen||mBen)).toLocaleString('en-GB'):'—'],
       ['Child (per child)',nc||'—',nc?Math.round(mBen*cPct).toLocaleString('en-GB'):'—'],
     ];
-    if(q.f_pPct&&+q.f_pPct>0)funRows.push(['Parent (per parent)',q.f_np||1,Math.round(mBen*(+q.f_pPct||0)).toLocaleString('en-GB')]);
+    if(npar>0)funRows.push(['Parent (per parent)',npar,Math.round(mBen*(+q.f_pPct||0)).toLocaleString('en-GB')]);
     card2=`<div style="${cardStyle}">
       <div style="${hdrStyle}">
         <span style="font-weight:700;font-size:14px">FUNERAL BENEFIT</span>
@@ -2826,13 +2960,13 @@ function qhShareEmail(id){shareImages(id,"email");}
 /* ═══════════════════════════════════════════════════════
    USER MANAGEMENT JS
 ═══════════════════════════════════════════════════════ */
-function renderUMList(){
+async function renderUMList(){
   const el=document.getElementById('um-list');if(!el)return;
-  const users=getUsers();
-  const entries=Object.entries(users);
-  if(!entries.length){el.innerHTML='<p style="font-size:12px;color:var(--T3)">No users.</p>';return;}
-  el.innerHTML=entries.map(function(pair){
-    const u=pair[0],d=pair[1];
+  el.innerHTML='<p style="font-size:12px;color:var(--T3)">Loading users…</p>';
+  const users=await fetchUsers(true); // always refresh when this screen opens
+  if(!users.length){el.innerHTML='<p style="font-size:12px;color:var(--T3)">No users.</p>';return;}
+  el.innerHTML=users.map(function(d){
+    const u=d.username;
     const initials=(d.fullName||u).slice(0,2).toUpperCase();
     const isMe=u===CURRENT_USER?.name;
     const editBtn='<button class="btn" style="padding:4px 9px;font-size:11px" onclick="openUMModal(this.dataset.u)" data-u="'+u+'">Edit</button>';
@@ -2850,35 +2984,7 @@ function renderUMList(){
   }).join('');
 }
 
-function openUMModal(editKey){
-  const users=getUsers();
-  document.getElementById('um-modal-title').textContent=editKey?'Edit User':'Add User';
-  document.getElementById('um-edit-key').value=editKey||'';
-  document.getElementById('um-err').style.display='none';
-  if(editKey&&users[editKey]){
-    const d=users[editKey];
-    document.getElementById('um-user').value=editKey;
-    document.getElementById('um-user').disabled=true;
-    document.getElementById('um-fullname').value=d.fullName||'';
-    document.getElementById('um-email').value=d.email||'';
-    document.getElementById('um-role').value=d.role||'agent';
-    document.getElementById('um-pwd-lbl').textContent='New Password (blank = keep current)';
-  } else {
-    document.getElementById('um-user').value='';
-    document.getElementById('um-user').disabled=false;
-    document.getElementById('um-fullname').value='';
-    document.getElementById('um-email').value='';
-    document.getElementById('um-role').value='agent';
-    document.getElementById('um-pwd-lbl').textContent='Password *';
-  }
-  document.getElementById('um-pwd').value='';
-  document.getElementById('um-pwd2').value='';
-  // Modal visibility is controlled via the 'open' class (see openUMModal/closeUMModal
-  // below) — setting inline style.display here used to override classList.remove('open')
-  // on Cancel, leaving the modal stuck open.
-}
-function closeUMModal(){document.getElementById('um-modal').style.display='none';}
-function saveUMModal(){
+async function saveUMModal(){
   const errEl=document.getElementById('um-err');
   const editKey=document.getElementById('um-edit-key').value;
   const uname=document.getElementById('um-user').value.trim();
@@ -2887,27 +2993,29 @@ function saveUMModal(){
   const role=document.getElementById('um-role').value;
   const pwd=document.getElementById('um-pwd').value;
   const pwd2=document.getElementById('um-pwd2').value;
-  const users=getUsers();
   const showE=m=>{errEl.textContent=m;errEl.style.display='block';};
   errEl.style.display='none';
   if(!uname)return showE('Username is required');
   if(!fullName)return showE('Full name is required');
   if(!editKey&&!pwd)return showE('Password is required for new users');
   if(pwd&&pwd!==pwd2)return showE('Passwords do not match');
-  if(!editKey&&users[uname])return showE('Username already exists');
-  const existing=editKey?users[editKey]:{};
-  users[uname]={...existing,fullName,email,role,pwd:pwd||existing.pwd};
-  saveUserStore(users);
-  renderUMList();
+  const saveBtn=document.querySelector('#um-modal .btn.primary,#um-modal button[onclick="saveUMModal()"]');
+  if(saveBtn)saveBtn.disabled=true;
+  const params={username:uname,fullName,email,role};
+  if(editKey)params.editKey=editKey;
+  if(pwd)params.password=pwd;
+  const res=await gasAuthCall('saveUser',params);
+  if(saveBtn)saveBtn.disabled=false;
+  if(res.status!=='ok')return showE(res.message||'Could not save user.');
+  await renderUMList();
   closeUMModal();
 }
-function deleteUMUser(uname){
+async function deleteUMUser(uname){
   if(uname===CURRENT_USER?.name){alert('You cannot delete your own account.');return;}
   if(!confirm('Remove user "'+uname+'"? This cannot be undone.'))return;
-  const users=getUsers();
-  delete users[uname];
-  saveUserStore(users);
-  renderUMList();
+  const res=await gasAuthCall('deleteUser',{username:uname});
+  if(res.status!=='ok'){alert(res.message||'Could not delete user.');return;}
+  await renderUMList();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3243,12 +3351,14 @@ function editMDBMember(i){document.getElementById('mdb-modal').classList.add('op
 function closeMDBModal(){document.getElementById('mdb-modal').classList.remove('open');}
 // Rename openUMModal internal fn to avoid collision
 function openUMModalFn(editKey){
-  const users=getUsers();
+  // USERS_CACHE is warm by the time this runs — renderUMList() (called when
+  // the Manage Users screen opens) always fetches it first.
+  const users=USERS_CACHE||[];
+  const d=editKey?users.find(u=>u.username===editKey):null;
   document.getElementById('um-modal-title').textContent=editKey?'Edit User':'Add User';
   document.getElementById('um-edit-key').value=editKey||'';
   document.getElementById('um-err').style.display='none';
-  if(editKey&&users[editKey]){
-    const d=users[editKey];
+  if(editKey&&d){
     document.getElementById('um-user').value=editKey;
     document.getElementById('um-user').disabled=true;
     document.getElementById('um-fullname').value=d.fullName||'';
