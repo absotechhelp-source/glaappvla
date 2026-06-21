@@ -1234,144 +1234,10 @@ const SECTORS={FIN:{l:'Financial Services / Professional',f:1.00},RET:{l:'Retail
 // Tier validation for UX only — pricing uses GAS TIERS
 const TIERS=[{l:'Small (<50)',n:1,maxD:0.05,maxL:0.25},{l:'Small-Med (50–99)',n:50,maxD:0.08,maxL:0.20},{l:'Medium (100–199)',n:100,maxD:0.15,maxL:0.15},{l:'Med-Large (200–499)',n:200,maxD:0.20,maxL:0.12},{l:'Large (500–999)',n:500,maxD:0.25,maxL:0.10},{l:'Very Large (1000+)',n:1000,maxD:0.30,maxL:0.08}];
 
-/* ══════════════════════════════════════════════════════════════
-   LOCAL FALLBACK ENGINE — used ONLY when GAS is unreachable.
-   Source of truth is VLA_GLA_GAS.gs. Keep these in sync when
-   updating assumptions. GAS is always used when online.
-══════════════════════════════════════════════════════════════ */
-const GLA_RATES={16:0.391190,17:0.375238,18:0.358333,19:0.340119,20:0.320357,21:0.299524,22:0.279881,23:0.264286,24:0.254643,25:0.250119,26:0.251429,27:0.255952,28:0.263095,29:0.274286,30:0.288571,31:0.305000,32:0.321667,33:0.332262,34:0.335714,35:0.335833,36:0.340714,37:0.347976,38:0.348690,39:0.346667,40:0.347024,41:0.366429,42:0.351548,43:0.331905,44:0.338095,45:0.369286,46:0.419405,47:0.475357,48:0.504048,49:0.494881,50:0.489048,51:0.510833,52:0.547976,53:0.595833,54:0.647143,55:0.695357,56:0.737262,57:0.774286,58:0.804524,59:0.826548,60:0.837024,61:0.838571,62:0.838214,63:0.843333,64:0.859762,65:0.882857,66:0.909524,67:0.938929,68:0.969762,69:1.000714,70:1.031071,71:1.060952,72:1.091071,73:1.122143,74:1.154881,75:1.189643,76:1.226667,77:1.265833,78:1.307500,79:1.351667,80:1.398333};
-const CI_RATES={15:{M:0.3289,F:0.1951},16:{M:0.3378,F:0.2024},17:{M:0.3653,F:0.1971},18:{M:0.4061,F:0.1864},19:{M:0.4337,F:0.1914},20:{M:0.4780,F:0.2532},21:{M:0.5481,F:0.3385},22:{M:0.6098,F:0.4400},23:{M:0.6712,F:0.5382},24:{M:0.7052,F:0.5831},25:{M:0.7246,F:0.6291},26:{M:0.7696,F:0.6772},27:{M:0.8332,F:0.7869},28:{M:0.8964,F:0.8973},29:{M:0.9434,F:1.0295},30:{M:0.9967,F:1.1714},31:{M:1.0683,F:1.2980},32:{M:1.1509,F:1.4864},33:{M:1.2296,F:1.6716},34:{M:1.3122,F:1.8038},35:{M:1.4641,F:1.9508},36:{M:1.5294,F:2.0697},37:{M:1.7728,F:2.2574},38:{M:2.1204,F:2.4312},39:{M:2.5578,F:2.7169},40:{M:2.9728,F:2.9911},41:{M:3.3741,F:3.2701},42:{M:3.8556,F:3.5208},43:{M:4.3240,F:3.7634},44:{M:4.8476,F:4.0919},45:{M:5.0972,F:4.2429},46:{M:5.5500,F:4.4575},47:{M:6.3402,F:4.8502},48:{M:7.0973,F:5.2204},49:{M:8.0823,F:5.6421},50:{M:9.0426,F:6.0481},51:{M:9.9344,F:6.4269},52:{M:11.0416,F:7.0423},53:{M:12.1116,F:7.6339},54:{M:13.2088,F:8.2379},55:{M:14.3686,F:8.8913},56:{M:14.8944,F:9.2888},57:{M:16.5470,F:9.9678},58:{M:18.2168,F:10.6613},59:{M:19.7751,F:11.5654},60:{M:21.0368,F:12.2617},61:{M:22.5515,F:13.1644},62:{M:24.0474,F:14.0692},63:{M:25.2630,F:14.5598},64:{M:26.1583,F:15.1056},65:{M:26.9326,F:15.5956},66:{M:28.1118,F:16.2624},67:{M:29.2910,F:16.9292},68:{M:30.4702,F:17.5960},69:{M:31.6494,F:18.2628},70:{M:32.8286,F:18.9296},71:{M:34.0078,F:19.5964},72:{M:35.1870,F:20.2632},73:{M:36.3662,F:20.9300},74:{M:37.5454,F:21.5968},75:{M:38.7246,F:22.2636}};
-const glaR=a=>GLA_RATES[Math.min(Math.max(Math.round(+a),16),80)]||GLA_RATES[80];
-const ciR=(a,g)=>{const k=Math.min(Math.max(Math.round(+a),15),75);return (CI_RATES[k]||CI_RATES[75])[g==='F'?'F':'M'];};
-const indF=s=>(SECTORS[s]||{f:1}).f;
-function capFactor(cap,mult){
-  const m={follow_gla:+mult,'25_pct':0.25,'50_pct':0.50,'75_pct':0.75,'100_pct':1.0,'1x_salary':1.0};
-  return m[cap]!=null?m[cap]:1.0;
-}
-function parseDOB(dob,comm){
-  // Use the commencement date at local midnight to avoid timezone offset on DOB
-  const s=String(dob).trim();
-  let b;
-  if(/^\d{4,5}$/.test(s)){
-    // Excel date serial → convert via UTC parts to avoid DST shifts
-    const d=new Date((+s-25569)*86400*1000);
-    b=new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
-  } else {
-    const m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    b=m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s);
-  }
-  if(isNaN(b))return null;
-  // Calendar age at last birthday (curtate age) — actuarial standard
-  const c=comm?new Date(comm+'T00:00:00'):new Date();
-  let age=c.getFullYear()-b.getFullYear();
-  const mDiff=c.getMonth()-b.getMonth();
-  if(mDiff<0||(mDiff===0&&c.getDate()<b.getDate()))age--;
-  return Math.max(16,Math.min(80,age));
-}
-function memberPrem(m,q,adm){
-  const{age_nearest:age,gender:g,annual_salary:sal}=m;          // FIX: was 'age' → undefined
-  const{mult,sec,inc_funeral,f_scope,f_mBen,f_nCh,f_cPct,f_nPar,f_pPct,
-    inc_ci,ci_cap,inc_dis,dis_cap,inc_ad,inc_sp,sp_pct,sp_mar}=q;
-  const{expDiv,ciLoad,disFac,adFac,spSetback,parentOffset,childMort,ciMaxAge}=adm;
-  const g2=+mult,ind=indF(sec);
-  const gla=(sal*g2/1000)*glaR(age)*ind;
-  let funeral=0;
-  if(inc_funeral){
-    const mb=+f_mBen||0,nc=Math.min(+f_nCh||0,4),np=Math.min(+f_nPar||0,4);
-    const cPct=+f_cPct||0.50,pPct=+f_pPct||0.25;
-    const spAge=Math.max(16,age-spSetback);
-    if(f_scope==='member_only'){
-      funeral=(mb/1000)*glaR(age);
-    } else {
-      // Member + Spouse (0.5 pricing factor per spec) + Children + Parents
-      funeral=(mb/1000)*glaR(age)+(mb*0.5/1000)*glaR(spAge)+(mb*cPct*nc/1000)*childMort;
-      if(np>0)funeral+=(mb*pPct*np/1000)*glaR(Math.min(80,age+parentOffset));
-    }
-  }
-  let ci=0;
-  if(inc_ci&&age<=ciMaxAge){
-    const b=sal*capFactor(ci_cap,g2);   // FIX #3: % of salary or follow GLA
-    ci=(b/1000)*ciR(age,g)/(1+ciLoad)/12;
-  }
-  let dis=0;
-  if(inc_dis){
-    const b=sal*capFactor(dis_cap,g2);  // FIX #3: % of salary or follow GLA
-    dis=(b/1000)*(ciR(age,'M')+ciR(age,'F'))/2/(1+ciLoad)*disFac/12;
-  }
-  const ad=inc_ad?gla*adFac:0;
-  let sp=0;
-  if(inc_sp){const sa=Math.max(16,age-spSetback);sp=(sal*g2*(+sp_pct)*(+sp_mar)/2/1000)*glaR(sa)*ind;}
-  return{gla,funeral,ci,dis,ad,sp,total:gla+funeral+ci+dis+ad+sp};
-}
-function fastQuote(q,adm){
-  const{n:N,sal:tS,age:aa,pf,mult,sec,inc_funeral,f_scope,f_mBen,f_nCh,f_cPct,f_nPar,f_pPct,
-    inc_ci,ci_cap,inc_dis,dis_cap,inc_ad,inc_sp,sp_pct,sp_mar,disc,load}=q;
-  const{expDiv,ciLoad,disFac,adFac,spSetback,parentOffset,childMort,ciMaxAge}=adm;
-  const n=+N,ts=+tS,a=+aa,pf2=+pf,g=+mult,ind=indF(sec),sp=+sp_pct,pm=+sp_mar;
-  const gla=(ts*g/1000)*glaR(a)*ind/expDiv;
-  let funeral=0;
-  if(inc_funeral){
-    const mb=+f_mBen||0,nc=Math.min(+f_nCh||0,4),np=Math.min(+f_nPar||0,4);
-    const cPct=+f_cPct||0.50,pPct=+f_pPct||0.25;
-    const spAge=Math.max(16,a-spSetback);
-    let per;
-    if(f_scope==='member_only'){
-      per=(mb/1000)*glaR(a)/expDiv;
-    } else {
-      // Member + Spouse (0.5 pricing factor per spec) + Children + Parents
-      per=(mb/1000)*glaR(a)/expDiv+(mb*0.5/1000)*glaR(spAge)/expDiv+(mb*cPct*nc/1000)*childMort/expDiv;
-      if(np>0)per+=(mb*pPct*np/1000)*glaR(Math.min(80,a+parentOffset))/expDiv;
-    }
-    funeral=n*per;
-  }
-  let ci=0;
-  if(inc_ci&&a<=ciMaxAge){
-    const b=ts*capFactor(ci_cap,g);    // FIX #3
-    const bl=(1-pf2)*ciR(a,'M')+pf2*ciR(a,'F');
-    ci=(b/1000)*bl/(1+ciLoad)/12;
-  }
-  let dis=0;
-  if(inc_dis){
-    const b=ts*capFactor(dis_cap,g);   // FIX #3
-    const bl=(1-pf2)*ciR(a,'M')+pf2*ciR(a,'F');
-    dis=(b/1000)*bl/(1+ciLoad)*disFac/12;
-  }
-  const ad=inc_ad?gla*adFac:0;
-  let spGla=0;
-  if(inc_sp)spGla=(ts*g*sp*pm/1000)*glaR(a)*ind/expDiv;
-  const base=gla+funeral+ci+dis+ad+spGla;
-  const nm=1-(+disc||0)+(+load||0);
-  const total_pm=base*nm,total_pa=total_pm*12;
-  // Fixed = components not scaling with GLA multiple; scalable = GLA + AD + (if follow_gla: CI/Dis)
-  const fixed_pm=funeral+(ci_cap!=='follow_gla'?ci:0)+(dis_cap!=='follow_gla'?dis:0);
-  const scalable_pm=total_pm-fixed_pm;
-  const inc_pm=scalable_pm/g;
-  const options=[1,2,3,4,5].map(k=>({k,pa:(fixed_pm+k*inc_pm)*12}));
-  return{gla,funeral,ci,dis,ad,sp:spGla,base,total_pm,total_pa,nm,
-    rate_pct:total_pa/(ts||1),per_mb:total_pm/(n||1),options,avgAge:a,totSal:ts,nMem:n};
-}
-function fullQuote(members,q,adm){
-  const{mult,disc,load,ci_cap,dis_cap}=q;
-  let gla=0,funeral=0,ci=0,dis=0,ad=0,sp=0;
-  members.forEach(m=>{const r=memberPrem(m,q,adm);gla+=r.gla;funeral+=r.funeral;ci+=r.ci;dis+=r.dis;ad+=r.ad;sp+=r.sp;});
-  const base=gla+funeral+ci+dis+ad+sp;
-  const nm=1-(+disc||0)+(+load||0);
-  const total_pm=base*nm,total_pa=total_pm*12;
-  const ts=members.reduce((s,m)=>s+m.annual_salary,0);
-  const g=+mult;
-  const fixed_pm=funeral+(ci_cap!=='follow_gla'?ci:0)+(dis_cap!=='follow_gla'?dis:0);
-  const scalable_pm=total_pm-fixed_pm;
-  const inc_pm=scalable_pm/g;
-  const options=[1,2,3,4,5].map(k=>({k,pa:(fixed_pm+k*inc_pm)*12}));
-  const avgAge=members.reduce((s,m)=>s+m.age_nearest,0)/members.length;
-  return{gla,funeral,ci,dis,ad,sp,base,total_pm,total_pa,nm,
-    rate_pct:total_pa/(ts||1),per_mb:total_pm/(members.length||1),options,
-    avgAge,totSal:ts,nMem:members.length};
-}
-/* ── end fallback engine ─────────────────────────────────────── */
+// Pricing engine lives entirely in VLA_GLA_GAS.gs — no local rate tables.
 
-// ADM_DEF: UI fallback defaults only — GAS uses its own at calc time
-const ADM_DEF={expDiv:0.70,ciLoad:0.20,disFac:0.40,adFac:0.10,spSetback:3,parentOffset:20,childMort:0.003,ciMaxAge:75,validDays:30,funeralMin:500000,funeralMax:7500000,gasUrl:'https://script.google.com/macros/s/AKfycbzePkRp_m4w0sHdwLLwhOYVO0K7-mzPEQBfum8coQfIlxdX_P3QZMGobzOvb1YwYZNw/exec'};
+// ADM_DEF: non-actuarial UI config (URL, validation limits) — no rate assumptions
+const ADM_DEF={validDays:30,funeralMin:500000,funeralMax:7500000,gasUrl:'https://script.google.com/macros/s/AKfycbzePkRp_m4w0sHdwLLwhOYVO0K7-mzPEQBfum8coQfIlxdX_P3QZMGobzOvb1YwYZNw/exec'};
 
 /* ═══════════════════════════════════════════════════════
    HELPERS
@@ -1387,7 +1253,24 @@ const fmtP=(n,d=2)=>((+n||0)*100).toFixed(d)+'%';
 // Converts a rider cap string to a salary multiple
 // ← Moved to GAS (VLA_GLA_GAS.gs)
 
-// parseDOB: defined in fallback engine above
+function parseDOB(dob,comm){
+  // Utility: calendar age (curtate) from DOB string or Excel serial
+  const s=String(dob).trim();
+  let b;
+  if(/^\d{4,5}$/.test(s)){
+    const d=new Date((+s-25569)*86400*1000);
+    b=new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+  } else {
+    const m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    b=m?new Date(+m[1],+m[2]-1,+m[3]):new Date(s);
+  }
+  if(isNaN(b))return null;
+  const c=comm?new Date(comm+'T00:00:00'):new Date();
+  let age=c.getFullYear()-b.getFullYear();
+  const mDiff=c.getMonth()-b.getMonth();
+  if(mDiff<0||(mDiff===0&&c.getDate()<b.getDate()))age--;
+  return Math.max(16,Math.min(80,age));
+}
 
 
 /* ═══════════════════════════════════════════════════════
@@ -1969,22 +1852,17 @@ function togglePC(){
    COMPUTE
 ═══════════════════════════════════════════════════════ */
 async function computeResults(){
-  // ── Phase 2 pattern: GAS primary, local fallback offline ───────
-  // Try GAS when URL configured, HTTP, and online
+  // GAS-only: no local fallback. Rate tables and pricing logic live in GAS exclusively.
   const gasUrl=ADM.gasUrl||'';
-  const canUseGAS = gasUrl && location.protocol!=='file:' && navigator.onLine;
-
-  if(canUseGAS){
-    try{
-      return await _calcViaGAS(gasUrl);
-    }catch(e){
-      console.warn('GAS calc failed, falling back to local engine:', e.message);
-      // Fall through to local engine below
-    }
+  if(!gasUrl){
+    alert('GAS URL not configured. Go to Admin Settings and enter the deployment URL.');
+    return false;
   }
-
-  // ── Local fallback (offline / file:// / GAS error) ──────────
-  return _calcLocal();
+  if(!navigator.onLine){
+    alert('No internet connection. An active connection is required to generate quotes.');
+    return false;
+  }
+  return await _calcViaGAS(gasUrl);
 }
 
 async function _calcViaGAS(gasUrl){
@@ -2015,27 +1893,7 @@ async function _calcViaGAS(gasUrl){
   return true;
 }
 
-function _calcLocal(){
-  // Local fallback — identical logic to GAS engine
-  // Results are marked as offline estimates
-  try{
-    const adm={...ADM_DEF,...ADM};
-    const p={...Q};
-    if(MODE==='full'){
-      if(!MEMBERS.length){alert('No members selected.');return false;}
-      p.sal=MEMBERS.reduce((s,m)=>s+(+m.annual_salary||0),0);
-      p.n=MEMBERS.length;
-      p.age=MEMBERS.reduce((s,m)=>s+(+m.age_nearest||0),0)/MEMBERS.length;
-      p.pf=MEMBERS.filter(m=>m.gender==='F').length/MEMBERS.length;
-    }
-    RESULTS=MODE==='fast'?fastQuote(p,adm):fullQuote(MEMBERS,p,adm);
-    if(!RESULTS||!isFinite(RESULTS.total_pa))throw new Error('Non-numeric premium');
-    RESULTS._engine='Local';   // shown as badge in summary
-    return true;
-  }catch(e){
-    alert('Calculation error: '+e.message);RESULTS=null;return false;
-  }
-}
+
 
 /* ═══════════════════════════════════════════════════════
    RENDER: STEP 5 SUMMARY
