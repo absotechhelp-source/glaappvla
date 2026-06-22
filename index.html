@@ -13,6 +13,7 @@
 /* === RESET & BASE === */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;color:#111;background:#F6F2EB;line-height:1.5}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* === LOGIN === */
 .login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#641414}
@@ -577,9 +578,8 @@ input,select{min-height:38px}
 
             <!-- STEP 3 -->
             <div class="step" id="s3">
-              <div class="fld" style="margin-bottom:18px">
-                <label>GLA Multiple (&times; Annual Salary)</label>
-                <div class="mult-row" id="mult-row"></div>
+              <div style="margin-bottom:18px">
+                <div id="mult-row"></div>
               </div>
               <div id="ben-list" class="blist"></div>
             </div>
@@ -637,6 +637,7 @@ input,select{min-height:38px}
             <option value="fast">Fast Quote</option>
             <option value="full">Full Quote</option>
           </select>
+          <button id="retrosync-btn" class="btn" style="padding:6px 14px;font-size:12px;white-space:nowrap" onclick="retroSyncAll()">&#128229; Sync from Sheet</button>
           <span id="qh-count" style="font-size:12px;color:#AAA;align-self:center"></span>
         </div>
         <div id="qh-list" class="qh-list"></div>
@@ -746,6 +747,20 @@ input,select{min-height:38px}
       <button class="btn primary" onclick="saveUMModal()">Save</button>
       <button class="btn" onclick="closeUMModal()">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- Quote Preview Modal -->
+<div class="modal-overlay" id="quote-preview-modal" style="align-items:flex-start;padding:20px;overflow-y:auto">
+  <div class="modal-box" style="width:min(780px,95vw);max-height:85vh;overflow-y:auto;padding:0;border-top:4px solid #641414">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid #EAE4DA;position:sticky;top:0;background:#fff;z-index:1">
+      <h3 id="qp-title" style="margin:0;font-size:15px;font-weight:700;color:#641414"></h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn primary" id="qp-pdf-btn" style="padding:5px 14px;font-size:12px">&#11015; Download PDF</button>
+        <button class="btn" onclick="closeQuotePreview()" style="padding:5px 14px;font-size:12px">&#215; Close</button>
+      </div>
+    </div>
+    <div id="qp-content" style="padding:20px"></div>
   </div>
 </div>
 
@@ -1230,14 +1245,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 // ← Moved to GAS (VLA_GLA_GAS.gs)
 
 // UI display only — authoritative list is in VLA_GLA_GAS.gs
-const SECTORS={FIN:{l:'Financial Services / Professional',f:1.00},RET:{l:'Retail / Wholesale Trade',f:1.05},MAN:{l:'Manufacturing / Light Industry',f:1.10},TRN:{l:'Transport / Logistics',f:1.20},CON:{l:'Construction / Civil Engineering',f:1.30},AGR:{l:'Agriculture / Farming',f:1.25},MIN:{l:'Mining / Quarrying',f:1.50},HEA:{l:'Healthcare / Medical',f:1.05},EDU:{l:'Education / Public Sector',f:1.00},SEC:{l:'Security / Protective Services',f:1.35}};
-// Tier validation for UX only — pricing uses GAS TIERS
-const TIERS=[{l:'Small (<50)',n:1,maxD:0.05,maxL:0.25},{l:'Small-Med (50–99)',n:50,maxD:0.08,maxL:0.20},{l:'Medium (100–199)',n:100,maxD:0.15,maxL:0.15},{l:'Med-Large (200–499)',n:200,maxD:0.20,maxL:0.12},{l:'Large (500–999)',n:500,maxD:0.25,maxL:0.10},{l:'Very Large (1000+)',n:1000,maxD:0.30,maxL:0.08}];
-
-// Pricing engine lives entirely in VLA_GLA_GAS.gs — no local rate tables.
-
-// ADM_DEF: non-actuarial UI config (URL, validation limits) — no rate assumptions
-const ADM_DEF={validDays:30,funeralMin:500000,funeralMax:7500000,gasUrl:'https://script.google.com/macros/s/AKfycbzePkRp_m4w0sHdwLLwhOYVO0K7-mzPEQBfum8coQfIlxdX_P3QZMGobzOvb1YwYZNw/exec'};
+// ── CONFIG: GAS is the single source of truth ──────────────────────────────
+// SECTORS, TIERS and admin defaults are served by GAS via getConfig on load.
+// Fallbacks below activate only when GAS is unreachable (offline / cold start).
+// They are NEVER used for pricing — calc always runs in GAS.
+const _SECTORS_FALLBACK={FIN:{l:'Financial Services / Professional',f:1.00},RET:{l:'Retail / Wholesale Trade',f:1.05},MAN:{l:'Manufacturing / Light Industry',f:1.10},TRN:{l:'Transport / Logistics',f:1.20},CON:{l:'Construction / Civil Engineering',f:1.30},AGR:{l:'Agriculture / Farming',f:1.25},MIN:{l:'Mining / Quarrying',f:1.50},HEA:{l:'Healthcare / Medical',f:1.05},EDU:{l:'Education / Public Sector',f:1.00},SEC:{l:'Security / Protective Services',f:1.35}};
+const _TIERS_FALLBACK=[{l:'Small (<50)',n:1,maxD:0.05,maxL:0.25},{l:'Small-Med (50-99)',n:50,maxD:0.08,maxL:0.20},{l:'Medium (100-199)',n:100,maxD:0.15,maxL:0.15},{l:'Med-Large (200-499)',n:200,maxD:0.20,maxL:0.12},{l:'Large (500-999)',n:500,maxD:0.25,maxL:0.10},{l:'Very Large (1000+)',n:1000,maxD:0.30,maxL:0.08}];
+const _ADM_FALLBACK={expDiv:0.70,ciLoad:0.20,disFac:0.40,adFac:0.10,spSetback:3,parentOffset:20,childMort:0.003,ciMaxAge:75,validDays:30,funeralMin:500000,funeralMax:7500000};
+let SECTORS={..._SECTORS_FALLBACK};  // replaced by GAS on connect
+let TIERS=[..._TIERS_FALLBACK];      // replaced by GAS on connect
+let GAS_DEFAULTS=null;               // set once getConfig succeeds; drives resetAdmin
+// ADM_DEF: bootstrap URL only — all parameter defaults come from GAS getConfig
+const ADM_DEF={gasUrl:'https://script.google.com/macros/s/AKfycbzePkRp_m4w0sHdwLLwhOYVO0K7-mzPEQBfum8coQfIlxdX_P3QZMGobzOvb1YwYZNw/exec'};
+// ────────────────────────────────────────────────────────────────────────────
 
 /* ═══════════════════════════════════════════════════════
    HELPERS
@@ -1276,13 +1296,16 @@ function parseDOB(dob,comm){
 /* ═══════════════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════════════ */
-let MODE='fast',STEP=1,MEMBERS=[],RESULTS=null;
+let MODE='fast',STEP=1,MEMBERS=[],RESULTS=null,COMPUTING=false;
 let ADM=(()=>{
   const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
   // A blank/missing gasUrl saved from before the hardcoded default existed
   // should not shadow it — only a genuine non-empty override wins.
   if(!saved.gasUrl)delete saved.gasUrl;
-  return {...ADM_DEF, ...saved};
+  // Start from fallback defaults; overlay the bootstrap URL; then apply any
+  // user overrides saved in localStorage. GAS_DEFAULTS (fetched on connect)
+  // will further refine this via applyGASConfig() — see pingGASOnLoad.
+  return {..._ADM_FALLBACK, ...ADM_DEF, ...saved};
 })();
 let SAVED_QUOTES=JSON.parse(localStorage.getItem('vla_gla_saved')||'[]');
 
@@ -1316,6 +1339,13 @@ const Q={
 ═══════════════════════════════════════════════════════ */
 function generatePDF(){
   if(!window.jspdf||!RESULTS){alert('PDF not ready, try again.');return;}
+  const doc=buildPDFDoc();
+  const safeCompany=(Q.company||'Quote').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'');
+  const safeRef=(Q.ref||new Date().toISOString().slice(0,10).replace(/-/g,'')).replace(/[^a-z0-9-]+/gi,'_');
+  doc.save(`VLA-GLA-${safeCompany}-${safeRef}.pdf`);
+}
+
+function buildPDFDoc(){
   // Destructure Q for convenient use throughout PDF generation
   const{inc_funeral,inc_ci,inc_dis,inc_ad,inc_sp,
         f_mBen,f_sBen,f_nCh,f_cPct,f_nPar,f_pPct,
@@ -1623,7 +1653,7 @@ function generatePDF(){
   const excl=['Own act of omission or negligence','Suicide or self-inflicted injury','Alcohol or drug-related causes','Fraudulent acts','Hazardous leisure activities (winter sports, diving, rock climbing, mountaineering, etc.)','Active service or duty in armed forces','Riot, civil commotion, strikes, labour disturbances or acts of terrorism','War risk, act of foreign enemy, hostilities or civil war','Nuclear events','Abscondence (illicitly escaping or hiding of a fugitive)','Deliberate exposure to exceptional danger'];
   excl.forEach(e=>{doc.text(`• ${e}`,ML,y);y+=5.5;});
 
-    // VLA Footer — actual letterhead footer image
+  // VLA Footer — actual letterhead footer image
   const totalPages=doc.getNumberOfPages();
   for(let p=1;p<=totalPages;p++){
     doc.setPage(p);
@@ -1634,12 +1664,8 @@ function generatePDF(){
     doc.text('Page '+p+' of '+totalPages,W-MR,ftrY+ftrH*0.65,{align:'right'});
   }
 
-  // Save/download the generated PDF — this was missing, which caused
-  // generatePDF() to build the document in memory and silently discard it.
-  const safeCompany=(Q.company||'Quote').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'');
-  const safeRef=(Q.ref||new Date().toISOString().slice(0,10).replace(/-/g,'')).replace(/[^a-z0-9-]+/gi,'_');
-  doc.save(`VLA-GLA-${safeCompany}-${safeRef}.pdf`);
-}  // close generatePDF
+  return doc;
+}  // close buildPDFDoc
 
 async function gasFetchQuotes(){
   const url=ADM.gasUrl;
@@ -1699,14 +1725,52 @@ async function pingGASOnLoad(){
   const dot=document.getElementById('gas-dot');
   const lbl=document.getElementById('gas-lbl');
   try{
-    const r=await fetch(ADM.gasUrl+'?action=ping',{redirect:'follow'});
-    const j=await r.json();
-    if(j.status==='ok'){
+    // Fire ping and getConfig in parallel — one round-trip cost
+    const [rPing,rCfg]=await Promise.all([
+      fetch(ADM.gasUrl+'?action=ping',{redirect:'follow'}),
+      fetch(ADM.gasUrl+'?action=getConfig',{redirect:'follow'})
+    ]);
+    const jPing=await rPing.json();
+    if(jPing.status==='ok'){
       if(pill){pill.textContent='● GAS CONNECTED';pill.style.color='#1D6A45';pill.classList.add('connected');}
       if(dot)dot.className='gas-dot ok';
       if(lbl)lbl.textContent='Connected ✓';
     }
+    const jCfg=await rCfg.json();
+    if(jCfg.status==='ok')applyGASConfig(jCfg);
   }catch{}  // silent on load — user can Test manually
+}
+
+// Apply config fetched from GAS. Overwrites SECTORS and TIERS entirely.
+// For admin params: GAS values win UNLESS the user has already saved a manual
+// override for that key in localStorage.
+function applyGASConfig(cfg){
+  if(cfg.sectors&&typeof cfg.sectors==='object')SECTORS=cfg.sectors;
+  if(cfg.tiers&&Array.isArray(cfg.tiers))TIERS=cfg.tiers;
+  if(cfg.adminDefaults&&typeof cfg.adminDefaults==='object'){
+    GAS_DEFAULTS=cfg.adminDefaults;
+    // Only apply keys the user hasn't explicitly overridden in localStorage
+    const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
+    Object.entries(GAS_DEFAULTS).forEach(([k,v])=>{
+      if(!(k in saved))ADM[k]=v; // user override takes precedence
+    });
+  }
+  // Refresh any live UI that depends on this config
+  refreshConfigDependentUI();
+}
+
+function refreshConfigDependentUI(){
+  // Sector dropdowns (wizard step 1 + history view if open)
+  document.querySelectorAll('#q-sec,#qh-sec-flt').forEach(el=>{
+    if(!el)return;
+    const cur=el.value;
+    el.innerHTML=Object.entries(SECTORS).map(([k,v])=>`<option value="${k}"${k===cur?' selected':''}>${v.l} (×${v.f})</option>`).join('');
+  });
+  // Tier note on step 4
+  if(typeof updateTierNote==='function')updateTierNote();
+  // Admin panel if open
+  const adminView=document.getElementById('view-admin');
+  if(adminView&&adminView.style.display!=='none'&&typeof renderAdminFields==='function')renderAdminFields();
 }
 
 
@@ -1826,9 +1890,11 @@ async function navNext(){
   if(STEP===5){startQuote(MODE);return;}
   if(!validateStep(STEP))return;
   if(STEP===4){
-    // Show step 5 loading state, then call GAS
+    // Show step 5 with spinner while GAS computes
+    COMPUTING=true;
     showStep(5);
     const ok=await computeResults();
+    COMPUTING=false;
     if(!ok){
       // Calculation failed — go back to pricing step
       STEP=4;showStep(4);return;
@@ -1900,6 +1966,10 @@ async function _calcViaGAS(gasUrl){
 ═══════════════════════════════════════════════════════ */
 function renderSummary(){
   const el=document.getElementById('summary-content');
+  if(COMPUTING){
+    el.innerHTML='<div style="text-align:center;padding:52px 20px"><div style="font-size:38px;margin-bottom:14px;animation:spin 1.2s linear infinite;display:inline-block">⚙</div><p style="font-size:15px;font-weight:700;color:#641414;margin-bottom:6px">Calculating your premium…</p><p style="font-size:12px;color:#AAA">Connecting to GAS pricing engine — this takes a few seconds</p></div>';
+    return;
+  }
   if(!RESULTS){el.innerHTML='<p style="text-align:center;padding:30px;color:var(--T3)">No results. Go back and check inputs.</p>';return;}
   // Auto-save with dedup on every render
   autoSaveQuote();
@@ -2266,7 +2336,12 @@ function saveAdmin(){
   const btn=event?.target;
   if(btn){const orig=btn.textContent;btn.textContent='Saved ✓';setTimeout(()=>btn.textContent=orig,1500);}
 }
-function resetAdmin(){ADM={...ADM_DEF};renderAdminFields();localStorage.removeItem('vla_gla_adm');}
+function resetAdmin(){
+  const base=GAS_DEFAULTS||_ADM_FALLBACK; // prefer server-authoritative defaults
+  ADM={...base,...ADM_DEF};
+  renderAdminFields();
+  localStorage.removeItem('vla_gla_adm');
+}
 
 /* ═══════════════════════════════════════════════════════
    SCREEN ROUTING
@@ -2510,10 +2585,15 @@ async function syncHistoryFromGAS(){
 // complete than what the Sheet can hold.
 function buildMergedHistory(){
   const localRefs=new Set(SAVED_QUOTES.map(s=>(s.q?.ref||'').trim()).filter(Boolean));
+  // Also deduplicate by company+mode combo to stop unref'd duplicates flooding history
+  const localKeys=new Set(SAVED_QUOTES.map(s=>[s.q?.company||'',s.mode,s.q?.mult||''].join('|').toLowerCase()));
   const gasOnly=GAS_QUOTES
     .filter(row=>{
       const ref=(row.ref||'').trim();
-      return !ref||!localRefs.has(ref);  // keep unrefed rows too, can't dedupe those safely
+      if(ref&&localRefs.has(ref))return false; // local has it by ref
+      const key=[row.company||'',row.mode||'fast',row.multiple||''].join('|').toLowerCase();
+      if(localKeys.has(key))return false; // local has it by company+mode+mult
+      return true;
     })
     .map(row=>({
       id:'gas_'+(row.ref||row.savedAt||Math.random()),
@@ -2525,6 +2605,63 @@ function buildMergedHistory(){
       members:[],
     }));
   return [...SAVED_QUOTES, ...gasOnly];
+}
+
+// Pull GAS-only rows into localStorage so they become locally accessible.
+// They arrive as partial data (no full RESULTS/MEMBERS) — marked gasSync:true.
+async function retroSyncAll(){
+  const btn=document.getElementById('retrosync-btn');
+  if(btn){btn.textContent='Syncing…';btn.disabled=true;}
+  const rows=await gasFetchQuotes();
+  if(!rows){
+    alert('Could not reach the Sheet. Check GAS connection.');
+    if(btn){btn.textContent='📥 Sync from Sheet';btn.disabled=false;}
+    return;
+  }
+  GAS_QUOTES=rows;
+  const localRefs=new Set(SAVED_QUOTES.map(s=>(s.q?.ref||'').trim()).filter(Boolean));
+  const localKeys=new Set(SAVED_QUOTES.map(s=>[s.q?.company||'',s.mode,s.q?.mult||''].join('|').toLowerCase()));
+  let added=0;
+  rows.forEach(row=>{
+    const ref=(row.ref||'').trim();
+    if(ref&&localRefs.has(ref))return;
+    const key=[row.company||'',row.mode||'fast',row.multiple||''].join('|').toLowerCase();
+    if(localKeys.has(key))return;
+    const id='gas_sync_'+(row.ref||row.savedAt||Date.now()+'_'+Math.random());
+    const entry={
+      id,mode:row.mode||'fast',source:'gas',gasSync:true,
+      savedAt:row.savedAt||new Date().toISOString(),
+      q:{company:row.company,ref:row.ref||'',mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector||'FIN',prepby:row.prepBy||''},
+      results:{total_pa:row.annualPremium,total_pm:Math.round(row.annualPremium/12),per_mb:0,rate_pct:0,options:[],gla:0,funeral:0,ci:0,dis:0,ad:0,sp:0,nMem:row.nMembers,avgAge:0,totSal:row.payroll||0},
+      members:[],
+    };
+    SAVED_QUOTES.unshift(entry);
+    localKeys.add(key);
+    if(ref)localRefs.add(ref);
+    added++;
+  });
+  if(added>0){
+    if(SAVED_QUOTES.length>30)SAVED_QUOTES=SAVED_QUOTES.slice(0,30);
+    localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
+    renderSavedList();
+  }
+  renderHistory();
+  if(btn){btn.textContent='📥 Sync from Sheet';btn.disabled=false;}
+  alert(added>0?`✓ Synced ${added} quote${added>1?'s':''} from the Sheet to this device.`:'No new quotes to sync — everything is already up to date.');
+}
+
+// Save a single GAS-only card to this device
+function retroSyncOne(id){
+  const entry=HISTORY_MERGED.find(s=>s.id===id);
+  if(!entry||entry.source!=='gas'){return;}
+  const alreadyLocal=SAVED_QUOTES.find(s=>s.id===id||(entry.q?.ref&&s.q?.ref===entry.q?.ref));
+  if(alreadyLocal){alert('Already saved on this device.');return;}
+  const localEntry={...entry,id:'gas_sync_'+Date.now(),gasSync:true};
+  SAVED_QUOTES.unshift(localEntry);
+  if(SAVED_QUOTES.length>30)SAVED_QUOTES=SAVED_QUOTES.slice(0,30);
+  localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
+  renderSavedList();
+  renderHistory();
 }
 
 function renderHistory(){
@@ -2564,16 +2701,17 @@ function renderHistory(){
       // The Sheet only stores a flat summary, not the full quote/member data
       // these actions need — so GAS-only rows get read-only visibility plus
       // a note, rather than buttons that would fail or show partial data.
-      actions='<div class="qh-row"><span class="qb" style="cursor:default;opacity:.7" title="Saved from another device — open it there for PDF, Revise or Delete">&#127760; Saved on another device</span></div>';
+      actions='<div class="qh-row"><span class="qb" style="cursor:default;opacity:.7" title="Saved from another device — open it there for PDF, Revise or Delete">&#127760; Saved on another device</span><button class="qb" onclick="retroSyncOne(\''+s.id+'\')">&#128229; Save to Device</button></div>';
     } else {
-      const btnPdf=`<button class="qb pdf" onclick="historyPDF('${s.id}')">&#11015; PDF</button>`;
+      const btnPdf=`<button class="qb pdf" onclick="historyPDF('${s.id}')">&#11015; Download PDF</button>`;
+      const btnView=`<button class="qb" style="background:#641414;color:#fff;border-color:#641414" onclick="openQuotePreview('${s.id}')">&#128065; View</button>`;
       const btnWA=`<button class="qb wa" onclick="qhShareWA('${s.id}')">WA</button>`;
       const btnEmail=`<button class="qb em" onclick="qhShareEmail('${s.id}')">&#9993; Email</button>`;
       const btnRevise=`<button class="qb" onclick="reviseQuote('${s.id}')">&#9999; Revise</button>`;
       const btnAdmin=isAdmin
         ? `<button class="qb del" onclick="deleteQuote('${s.id}')">&#128465; Delete</button>`
-        : `<button class="qb" onclick="viewQuoteSummary('${s.id}')">&#128065; View</button>`;
-      actions='<div class="qh-row">'+btnPdf+btnWA+btnEmail+'</div><div class="qh-row">'+btnRevise+btnAdmin+'</div>';
+        : '';
+      actions='<div class="qh-row">'+btnView+btnPdf+'</div><div class="qh-row">'+btnWA+btnEmail+btnRevise+(btnAdmin?btnAdmin:'')+'</div>';
     }
     return '<div class="qh-card">'
       +'<div class="qh-info">'
@@ -2676,8 +2814,70 @@ function deleteQuote(id){
 
 
 /* ═══════════════════════════════════════════════════════
-   SHARE AS IMAGES (WA + EMAIL)
+   SHARE PDF VIA EMAIL OR WHATSAPP
 ═══════════════════════════════════════════════════════ */
+async function sharePDF(id, method){
+  const sq=SAVED_QUOTES.find(s=>s.id===id)||HISTORY_MERGED.find(s=>s.id===id);
+  if(!sq){alert('Quote not found.');return;}
+  if(!window.jspdf){alert('PDF library not ready. Please refresh and try again.');return;}
+
+  const btn=document.querySelector('[onclick*="qhShare'+(method==='wa'?'WA':'Email')+'(\''+id+'\'"]');
+  const origText=btn?.textContent;
+  if(btn){btn.textContent='Generating…';btn.disabled=true;}
+
+  const r=sq.results||{},q=sq.q||{};
+  const safeCompany=(q.company||'Quote').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'');
+  const safeRef=(q.ref||new Date().toISOString().slice(0,10).replace(/-/g,'')).replace(/[^a-z0-9-]+/gi,'_');
+  const fileName='VLA-GLA-'+safeCompany+'-'+safeRef+'.pdf';
+
+  const shareText='VLA Group Life Assurance Quote\n'+(q.company||'')+'\nRef: '+(q.ref||'N/A')+'\nCover: '+(q.mult||'?')+'× Annual Salary\nAnnual Premium: MWK '+(r.total_pa||0).toLocaleString('en-GB')+'\nMonthly: MWK '+Math.round((r.total_pa||0)/12).toLocaleString('en-GB')+'\n\nVanguard Life Assurance Company Limited\n+265 887 094 872 | vanguardlifemw.com';
+
+  // Temporarily swap state to generate PDF for this saved quote
+  const saveQ={...Q},saveR=RESULTS,saveMode=MODE,saveMembers=[...MEMBERS];
+  Object.assign(Q,sq.q);
+  RESULTS=sq.results;
+  MODE=sq.mode;
+  MEMBERS=sq.members||[];
+
+  let doc;
+  try{
+    doc=buildPDFDoc();
+  }catch(e){
+    Object.assign(Q,saveQ);RESULTS=saveR;MODE=saveMode;MEMBERS=saveMembers;
+    if(btn){btn.textContent=origText;btn.disabled=false;}
+    alert('PDF generation failed: '+e.message);return;
+  }
+  Object.assign(Q,saveQ);RESULTS=saveR;MODE=saveMode;MEMBERS=saveMembers;
+
+  const pdfBlob=doc.output('blob');
+  const pdfFile=new File([pdfBlob],fileName,{type:'application/pdf'});
+
+  // Try native Web Share API (works on Android Chrome, iOS Safari)
+  if(navigator.canShare&&navigator.canShare({files:[pdfFile]})){
+    try{
+      await navigator.share({files:[pdfFile],title:'VLA GLA Quote — '+(q.company||''),text:shareText});
+      if(btn){btn.textContent=origText;btn.disabled=false;}
+      return;
+    }catch(e){if(e.name!=='AbortError')console.warn('Share failed:',e);}
+  }
+
+  // Fallback: download PDF then open Email / WhatsApp
+  const blobUrl=URL.createObjectURL(pdfBlob);
+  const a=document.createElement('a');
+  a.href=blobUrl;a.download=fileName;a.click();
+  setTimeout(()=>URL.revokeObjectURL(blobUrl),3000);
+
+  setTimeout(()=>{
+    if(method==='wa'){
+      window.open('https://wa.me/?text='+encodeURIComponent(shareText+'\n\n(PDF quote saved to your Downloads — please attach when sharing)'),'_blank');
+    } else {
+      const subj='VLA GLA Quote — '+(q.company||'')+(q.ref?' ('+q.ref+')':'');
+      window.open('mailto:?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(shareText+'\n\n(PDF quote saved to your Downloads — please attach to this email)'),'_blank');
+    }
+  },600);
+
+  if(btn){btn.textContent=origText;btn.disabled=false;}
+}
 function buildShareCards(sq){
   // Build 3 off-screen HTML cards matching the quote data
   const r=sq.results||{},q=sq.q||{};
@@ -2811,8 +3011,115 @@ async function shareImages(id,method){
   finally{if(btn){btn.textContent=origText||'Share';btn.disabled=false;}}
 }
 
-function qhShareWA(id){shareImages(id,'wa');}
-function qhShareEmail(id){shareImages(id,"email");}
+function closeQuotePreview(){document.getElementById('quote-preview-modal').classList.remove('open');}
+
+function openQuotePreview(id){
+  const sq=SAVED_QUOTES.find(s=>s.id===id)||HISTORY_MERGED.find(s=>s.id===id);
+  if(!sq){alert('Quote not found.');return;}
+  const r=sq.results||{},q=sq.q||{};
+  const isPartial=sq.gasSync||sq.source==='gas';
+  const totSal=sq.mode==='fast'?+(q.sal||0):(r.totSal||+(q.sal||0));
+  const nMem=sq.mode==='full'?(sq.members?.length||r.nMem||q.n||'—'):(q.n||'—');
+  const dt=new Date(sq.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  const fmt2=(n,d=0)=>n==null||isNaN(+n)?'—':(+n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const fmtP2=(n,d=2)=>n==null||isNaN(+n)?'—':((+n||0)*100).toFixed(d)+'%';
+  const sec=SECTORS[q.sec]?.l?.split('/')[0]||q.sec||'—';
+
+  // Hero bar
+  let html=`
+  <div style="background:#641414;color:#fff;padding:16px 18px;border-radius:4px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.5);margin-bottom:3px">Annual Premium (${sq.mode==='full'?'Full Quote':'Fast Quote'})</div>
+      <div style="font-size:26px;font-weight:700;font-family:monospace">MWK ${fmt2(r.total_pa)}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px">${nMem} members · ${q.mult||'?'}× Salary · ${sec} · ${dt}</div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:rgba(255,255,255,.55)">
+      <div style="margin-bottom:4px">Monthly: MWK ${fmt2(r.total_pm)}</div>
+      <div>Ref: ${q.ref||'No ref'}</div>
+      ${q.prepby?'<div>By: '+q.prepby+'</div>':''}
+    </div>
+  </div>`;
+
+  if(isPartial){
+    html+='<div class="msg warn" style="margin-bottom:12px">⚠ This quote was synced from the Sheet — only summary data is available. Full breakdown requires re-generating on the originating device.</div>';
+    html+=`<table class="vt" style="margin-bottom:0"><tbody>
+      <tr><td>Company</td><td style="text-align:right;font-weight:600">${q.company||'—'}</td></tr>
+      <tr><td>Reference</td><td style="text-align:right">${q.ref||'—'}</td></tr>
+      <tr><td>Mode</td><td style="text-align:right">${sq.mode==='full'?'Full Quote (Census)':'Fast Quote'}</td></tr>
+      <tr><td>Members</td><td style="text-align:right;font-family:monospace">${fmt2(nMem)}</td></tr>
+      <tr><td>Total Payroll</td><td style="text-align:right;font-family:monospace">MWK ${fmt2(totSal)}</td></tr>
+      <tr><td>GLA Multiple</td><td style="text-align:right">${q.mult||'?'}× Annual Salary</td></tr>
+      <tr><td>Annual Premium</td><td style="text-align:right;font-family:monospace;font-weight:700;color:#641414">MWK ${fmt2(r.total_pa)}</td></tr>
+      <tr><td>Monthly Premium</td><td style="text-align:right;font-family:monospace">MWK ${fmt2(r.total_pm)}</td></tr>
+    </tbody></table>`;
+  } else {
+    // Key metrics
+    html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      ${[['Monthly Premium','MWK '+fmt2(r.total_pm)],['Per Member / Month','MWK '+fmt2(r.per_mb)],['Rate % of Payroll',fmtP2(r.rate_pct,3)],['GLA Multiple',(q.mult||'?')+'× Salary'],['Industry',sec],['Avg Age',(+r.avgAge||+(q.age||0)).toFixed(1)+' yrs']].map(([l,v])=>`<div class="met"><div class="met-l">${l}</div><div class="met-v">${v}</div></div>`).join('')}
+    </div>`;
+
+    // GLA options table
+    if(r.options&&r.options.length){
+      html+=`<div class="sec-hd">GLA Cover Options</div>
+      <table class="vt" style="margin-bottom:14px">
+        <thead><tr><th>Cover</th><th class="n">% of Payroll</th><th class="n">Annual Premium (MWK)</th><th class="n">Total Benefit (MWK)</th></tr></thead>
+        <tbody>${r.options.map(({k,pa})=>`<tr class="${k===+q.mult?'cr':''}">
+          <td>${k}× Salary${k===+q.mult?'<span style="margin-left:8px;font-size:10px;background:#641414;color:#D8C9B4;padding:1px 7px;border-radius:2px">Selected</span>':''}</td>
+          <td class="n">${fmtP2(pa/(totSal||1),2)}</td>
+          <td class="n">${fmt2(pa)}</td>
+          <td class="n">MWK ${fmt2(totSal*(k||1))}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    // Benefit breakdown
+    const capLbl=c=>({'25_pct':'25% salary','50_pct':'50% salary','75_pct':'75% salary','100_pct':'1× salary','follow_gla':(q.mult||'?')+'× salary (GLA)','1x_salary':'1× salary'}[c]||c);
+    const bRows=[['Main Life Cover (GLA)',r.gla*12,'#641414']];
+    if(q.inc_funeral)bRows.push(['Funeral / Last Expense',r.funeral*12,'#1F7A8C']);
+    if(q.inc_ci)bRows.push(['Critical Illness — '+capLbl(q.ci_cap),r.ci*12,'#7B5EA7']);
+    if(q.inc_dis)bRows.push(['Disability — '+capLbl(q.dis_cap),r.dis*12,'#C8963E']);
+    if(q.inc_ad)bRows.push(['Accidental Death (AD)',r.ad*12,'#2D5A3D']);
+    if(q.inc_sp)bRows.push(['Spouse GLA',r.sp*12,'#B84C4C']);
+    if(bRows.some(([,pa])=>pa>0)){
+      html+=`<div class="sec-hd">Premium Breakdown by Benefit</div>
+      <table class="vt" style="margin-bottom:14px">
+        <thead><tr><th>Benefit</th><th class="n">Annual (MWK)</th><th class="n">Monthly (MWK)</th><th class="n">% of Payroll</th></tr></thead>
+        <tbody>${bRows.map(([l,pa,c])=>`<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${c};margin-right:8px;vertical-align:middle"></span>${l}</td><td class="n">${fmt2(pa)}</td><td class="n">${fmt2(pa/12)}</td><td class="n">${fmtP2(pa/(totSal||1),3)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>TOTAL</td><td class="n">${fmt2(r.total_pa)}</td><td class="n">${fmt2(r.total_pm)}</td><td class="n">${fmtP2(r.rate_pct,3)}</td></tr></tfoot>
+      </table>`;
+    }
+
+    // Full Quote member summary
+    if(sq.mode==='full'&&sq.members&&sq.members.length){
+      const ms=sq.members;
+      const avgA=(ms.reduce((s,m)=>s+m.age_nearest,0)/ms.length).toFixed(1);
+      const totP=ms.reduce((s,m)=>s+m.annual_salary,0);
+      html+=`<div class="sec-hd">Census Summary</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        ${[['Total Members',fmt2(ms.length)],['Males',fmt2(ms.filter(m=>m.gender==='M').length)],['Females',fmt2(ms.filter(m=>m.gender==='F').length)],['Avg Age',avgA+' yrs'],['Total Payroll','MWK '+fmt2(totP)],['CI Excluded',ms.filter(m=>m.ci_excluded).length+' mbr(s)']].map(([l,v])=>`<div class="met"><div class="met-l">${l}</div><div class="met-v">${v}</div></div>`).join('')}
+      </div>`;
+    }
+  }
+
+  html+=`<div style="font-size:10px;color:#CCC;margin-top:8px;text-align:center">Vanguard Life Assurance Company Limited · vanguardlifemw.com · Quote ID: ${sq.id}</div>`;
+
+  document.getElementById('qp-title').textContent=q.company||'Quote Preview';
+  document.getElementById('qp-content').innerHTML=html;
+  const pdfBtn=document.getElementById('qp-pdf-btn');
+  if(pdfBtn){
+    if(!isPartial){
+      pdfBtn.style.display='';
+      pdfBtn.onclick=()=>{closeQuotePreview();historyPDF(id);};
+    } else {
+      pdfBtn.style.display='none';
+    }
+  }
+  document.getElementById('quote-preview-modal').classList.add('open');
+}
+
+function qhShareWA(id){sharePDF(id,'wa');}
+function qhShareEmail(id){sharePDF(id,'email');}
+
 
 
 /* ═══════════════════════════════════════════════════════
