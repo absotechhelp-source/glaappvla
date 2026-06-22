@@ -1,60 +1,96 @@
 /**
- * VLA GLA Pricing Engine — Service Worker v1.0
- * Cache the app shell for offline quote generation.
- * All GAS/Google requests bypass the cache (always go to network).
+ * VLA Group Life Pricing Engine — Service Worker
+ *
+ * HOW TO FORCE ALL DEVICES TO PICK UP A NEW DEPLOYMENT:
+ *   1. Bump CACHE_VERSION (e.g. 'v4' → 'v5')
+ *   2. Re-deploy index.html + this sw.js together
+ *   The new SW installs, activates immediately (skipWaiting),
+ *   deletes the old cache, and reloads every open tab automatically.
+ *
+ * Architecture:
+ *   • HTML navigation  → network-first (always tries to get the latest index.html)
+ *   • Other same-origin assets → cache-first (fast offline support)
+ *   • External requests (GAS API, CDN libs) → pass-through (never cached here)
  */
-const CACHE_NAME = 'vla-gla-v8';
-const SHELL = [
+
+const CACHE_VERSION = 'vla-gla-v3';   // ← bump this string on every new deployment
+const CACHE_NAME    = CACHE_VERSION;
+
+const PRECACHE_URLS = [
   './',
   './index.html',
-  './icon-192.png',
-  './icon-512.png',
   './manifest.json',
 ];
 
-self.addEventListener('install', function(e) {
-  e.waitUntil(
+// ── INSTALL ─────────────────────────────────────────────────────────────────
+// Cache core assets and activate immediately (don't wait for tabs to close).
+self.addEventListener('install', event => {
+  event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(function(cache) { return cache.addAll(SHELL); })
-      .then(function() { return self.skipWaiting(); })
+      .then(cache => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())   // activate straight away
   );
 });
 
-self.addEventListener('activate', function(e) {
-  e.waitUntil(
+// ── ACTIVATE ─────────────────────────────────────────────────────────────────
+// Delete every cache that isn't the current version, then claim all open tabs
+// so they immediately benefit from the new SW without needing a manual refresh.
+self.addEventListener('activate', event => {
+  event.waitUntil(
     caches.keys()
-      .then(function(keys) {
-        return Promise.all(
-          keys.filter(function(k){ return k !== CACHE_NAME; })
-              .map(function(k){ return caches.delete(k); })
-        );
-      })
-      .then(function() { return self.clients.claim(); })
+      .then(keys => Promise.all(
+        keys
+          .filter(k => k !== CACHE_NAME)
+          .map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())   // take control of existing tabs
   );
 });
 
-self.addEventListener('fetch', function(e) {
-  var url = e.request.url;
-  // Always use network for GAS calls (quotes need live server engine)
-  if (url.includes('script.google.com') || url.includes('googleapis.com')) {
+// ── FETCH ────────────────────────────────────────────────────────────────────
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET') return;  // never intercept POST / non-GET
+
+  const url = new URL(req.url);
+
+  // Let external requests (GAS, CDN libs) go straight to the network.
+  if (url.origin !== self.location.origin) return;
+
+  // HTML navigation → network-first so devices always get the latest app shell.
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then(netRes => {
+          if (netRes && netRes.status === 200) {
+            caches.open(CACHE_NAME).then(c => c.put(req, netRes.clone()));
+          }
+          return netRes;
+        })
+        .catch(() =>
+          caches.match(req).then(cached => cached || caches.match('./index.html'))
+        )
+    );
     return;
   }
-  e.respondWith(
-    caches.match(e.request).then(function(cached) {
+
+  // All other same-origin assets → cache-first for speed / offline.
+  event.respondWith(
+    caches.match(req).then(cached => {
       if (cached) return cached;
-      return fetch(e.request).then(function(resp) {
-        if (e.request.method === 'GET' && resp.status === 200) {
-          var clone = resp.clone();
-          caches.open(CACHE_NAME).then(function(c){ c.put(e.request, clone); });
+      return fetch(req).then(netRes => {
+        if (netRes && netRes.status === 200) {
+          caches.open(CACHE_NAME).then(c => c.put(req, netRes.clone()));
         }
-        return resp;
+        return netRes;
       });
-    }).catch(function() {
-      if (e.request.mode === 'navigate') return caches.match('./index.html');
     })
   );
 });
 
-self.addEventListener('message', function(e) {
-  if (e.data === 'SKIP_WAITING') self.skipWaiting();
+// ── MESSAGES FROM THE PAGE ───────────────────────────────────────────────────
+// The page's SW registration code sends 'skipWaiting' when it detects a new
+// version is waiting. We honour it here so the update takes effect immediately.
+self.addEventListener('message', event => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
