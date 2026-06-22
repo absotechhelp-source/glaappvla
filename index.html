@@ -1752,6 +1752,7 @@ function applyGASConfig(cfg){
     // Only apply keys the user hasn't explicitly overridden in localStorage
     const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
     Object.entries(GAS_DEFAULTS).forEach(([k,v])=>{
+      if(k==='gasUrl')return;    // never let GAS overwrite the URL used to reach it
       if(!(k in saved))ADM[k]=v; // user override takes precedence
     });
   }
