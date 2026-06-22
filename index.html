@@ -2261,7 +2261,7 @@ function autoSaveQuote(){
     return k===dedupKey;
   });
   const id=existing>=0?SAVED_QUOTES[existing].id:'gla_'+Date.now();
-  const entry={id,mode:MODE,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,500):[],savedAt:new Date().toISOString(),autoSaved:true};
+  const entry={id,mode:MODE,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,2000):[],savedAt:new Date().toISOString(),autoSaved:true};
   if(existing>=0){
     SAVED_QUOTES[existing]=entry; // update existing
   } else {
@@ -2270,8 +2270,8 @@ function autoSaveQuote(){
   }
   localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
   renderSavedList();
-  // Push to GAS silently (no alert)
-  gasPost({ref:Q.ref||id,date:new Date().toISOString(),company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa});
+  // Push to GAS — full payload enables cross-device PDF on any signed-in device
+  gasPost({ref:Q.ref||id,date:Q.date||'',company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa,sector:Q.sec||'',prepBy:Q.prepby||'',benefits:{inc_funeral:!!Q.inc_funeral,inc_ci:!!Q.inc_ci,inc_dis:!!Q.inc_dis,inc_ad:!!Q.inc_ad,inc_sp:!!Q.inc_sp},fullData:JSON.stringify({q:{...Q},results:{...RESULTS},mode:MODE})});
 
 }
 
@@ -2282,12 +2282,12 @@ function saveQuote(){
   const dedupKey2=Q.ref?Q.ref.trim():[Q.company,Q.date,Q.mult].filter(Boolean).join('|');
   const existing2=dedupKey2?SAVED_QUOTES.findIndex(s=>{const k=s.q?.ref?s.q.ref.trim():[s.q?.company,s.q?.date,s.q?.mult].filter(Boolean).join('|');return k===dedupKey2;}): -1;
   const finalId=existing2>=0?SAVED_QUOTES[existing2].id:id;
-  const entry={id:finalId,mode:MODE,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,500):[],savedAt:new Date().toISOString()};
+  const entry={id:finalId,mode:MODE,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,2000):[],savedAt:new Date().toISOString()};
   if(existing2>=0){SAVED_QUOTES[existing2]=entry;}
   else{SAVED_QUOTES.unshift(entry);if(SAVED_QUOTES.length>30)SAVED_QUOTES=SAVED_QUOTES.slice(0,30);}
   localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
   renderSavedList();
-  gasPost({ref:Q.ref||finalId,date:new Date().toISOString(),company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa});
+  gasPost({ref:Q.ref||finalId,date:Q.date||'',company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa,sector:Q.sec||'',prepBy:Q.prepby||'',benefits:{inc_funeral:!!Q.inc_funeral,inc_ci:!!Q.inc_ci,inc_dis:!!Q.inc_dis,inc_ad:!!Q.inc_ad,inc_sp:!!Q.inc_sp},fullData:JSON.stringify({q:{...Q},results:{...RESULTS},mode:MODE})});
   const sc=document.getElementById('summary-content');
   if(sc){const b=document.createElement('div');b.className='msg ok';b.textContent=existing2>=0?'✓ Quote updated.':'✓ Quote saved.';sc.prepend(b);setTimeout(()=>b.remove(),3000);}
 }
@@ -2602,6 +2602,7 @@ function buildMergedHistory(){
       id:'gas_'+(row.ref||row.savedAt||Math.random()),
       mode:row.mode||'fast',
       source:'gas',
+      hasFullData:!!row.hasFullData,
       savedAt:row.savedAt,
       q:{company:row.company,ref:row.ref,mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector,prepby:row.prepBy},
       results:{total_pa:row.annualPremium},
@@ -2654,17 +2655,35 @@ async function retroSyncAll(){
 }
 
 // Save a single GAS-only card to this device
-function retroSyncOne(id){
+async function retroSyncOne(id){
   const entry=HISTORY_MERGED.find(s=>s.id===id);
   if(!entry||entry.source!=='gas'){return;}
   const alreadyLocal=SAVED_QUOTES.find(s=>s.id===id||(entry.q?.ref&&s.q?.ref===entry.q?.ref));
   if(alreadyLocal){alert('Already saved on this device.');return;}
-  const localEntry={...entry,id:'gas_sync_'+Date.now(),gasSync:true};
-  SAVED_QUOTES.unshift(localEntry);
+  let fullEntry={...entry,id:'gas_sync_'+Date.now(),gasSync:true};
+  // Try to fetch full data so PDF and Revise work on this device too
+  const ref=entry.q?.ref;
+  if(ADM.gasUrl&&ref&&navigator.onLine){
+    try{
+      const res=await gasCall('getQuote',{ref});
+      if(res.status==='ok'&&res.fullData){
+        fullEntry={...fullEntry,
+          q:res.fullData.q||entry.q,
+          results:res.fullData.results||entry.results,
+          mode:res.fullData.mode||entry.mode,
+          members:[],
+          gasSync:false};
+      }
+    }catch{}
+  }
+  SAVED_QUOTES.unshift(fullEntry);
   if(SAVED_QUOTES.length>30)SAVED_QUOTES=SAVED_QUOTES.slice(0,30);
   localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
   renderSavedList();
   renderHistory();
+  alert(fullEntry.gasSync
+    ?'Saved summary to this device (full data unavailable — re-save from originating device for PDF).'
+    :'✓ Saved to this device — PDF, View and Revise are all available.');
 }
 
 function renderHistory(){
@@ -2704,7 +2723,16 @@ function renderHistory(){
       // The Sheet only stores a flat summary, not the full quote/member data
       // these actions need — so GAS-only rows get read-only visibility plus
       // a note, rather than buttons that would fail or show partial data.
-      actions='<div class="qh-row"><span class="qb" style="cursor:default;opacity:.7" title="Saved from another device — open it there for PDF, Revise or Delete">&#127760; Saved on another device</span><button class="qb" onclick="retroSyncOne(\''+s.id+'\')">&#128229; Save to Device</button></div>';
+      const ref=(s.q?.ref||'').replace(/'/g,"\\'");
+      const canPDF=s.hasFullData&&ref;
+      const pdfBtn=canPDF
+        ?`<button class="qb pdf" data-cdpdf="${s.id}" onclick="crossDevicePDF('${s.id}','${ref}')">&#11015; PDF</button>`
+        :`<span class="qb" style="cursor:default;opacity:.45;font-size:10px" title="Re-save this quote on the originating device to enable cross-device PDF">PDF N/A</span>`;
+      const viewBtn=canPDF
+        ?`<button class="qb" style="background:#641414;color:#fff;border-color:#641414" data-cdview="${s.id}" onclick="crossDeviceView('${s.id}','${ref}')">&#128065; View</button>`
+        :'';
+      actions=`<div class="qh-row">${viewBtn}${pdfBtn}</div>`
+        +`<div class="qh-row"><span class="qb" style="cursor:default;opacity:.5;font-size:10px">&#127760; Another device</span><button class="qb" onclick="retroSyncOne('${s.id}')">&#128229; Save here</button></div>`;
     } else {
       const btnPdf=`<button class="qb pdf" onclick="historyPDF('${s.id}')">&#11015; Download PDF</button>`;
       const btnView=`<button class="qb" style="background:#641414;color:#fff;border-color:#641414" onclick="openQuotePreview('${s.id}')">&#128065; View</button>`;
@@ -3529,7 +3557,66 @@ function renderMDBStandalone(){
 document.querySelectorAll('.modal-overlay').forEach(function(el){
   el.addEventListener('click',function(e){if(e.target===el){el.classList.remove('open');}});
 });
-function openUMModal(k){document.getElementById('um-modal').classList.add('open');openUMModalFn(k);}
+// Generate PDF for a quote that was saved on another device.
+// Fetches the full Q + RESULTS payload from GAS, swaps globals, generates PDF.
+async function crossDevicePDF(id,ref){
+  if(!ADM.gasUrl){alert('GAS not connected.');return;}
+  if(!navigator.onLine){alert('You are offline. Connect to the internet and try again.');return;}
+  const btn=document.querySelector('[data-cdpdf="'+id+'"]');
+  if(btn){btn.disabled=true;btn.textContent='Fetching…';}
+  try{
+    const res=await gasCall('getQuote',{ref});
+    if(res.status!=='ok'||!res.fullData){
+      alert(res.message||'Could not retrieve quote data.');
+      return;
+    }
+    const fd=res.fullData;
+    if(!fd.q||!fd.results){alert('Quote data incomplete — cannot generate PDF.');return;}
+    // Temporarily swap globals for PDF generation
+    const saveQ={...Q},saveR=RESULTS,saveMode=MODE,saveMembers=[...MEMBERS];
+    Object.assign(Q,fd.q);
+    RESULTS=fd.results;
+    MODE=fd.mode||'fast';
+    MEMBERS=[];
+    try{generatePDF();}
+    catch(e){alert('PDF generation failed: '+e.message);}
+    // Restore globals
+    Object.assign(Q,saveQ);RESULTS=saveR;MODE=saveMode;MEMBERS=saveMembers;
+  }catch(e){
+    alert('Could not fetch quote: '+(e.message||e));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='\u2B07 PDF';}
+  }
+}
+
+// Open the preview modal for a quote saved on another device.
+async function crossDeviceView(id,ref){
+  if(!ADM.gasUrl){alert('GAS not connected.');return;}
+  if(!navigator.onLine){alert('You are offline. Connect to the internet and try again.');return;}
+  const btn=document.querySelector('[data-cdview="'+id+'"]');
+  if(btn){btn.disabled=true;btn.textContent='Loading…';}
+  try{
+    const res=await gasCall('getQuote',{ref});
+    if(res.status!=='ok'||!res.fullData){
+      alert(res.message||'Could not retrieve quote data.');
+      return;
+    }
+    const fd=res.fullData;
+    // Build/update a temporary entry in HISTORY_MERGED so openQuotePreview can render it
+    const tempEntry={
+      id,mode:fd.mode||'fast',source:'gas',
+      q:fd.q,results:fd.results,
+      members:[],savedAt:new Date().toISOString()
+    };
+    const idx=HISTORY_MERGED.findIndex(s=>s.id===id);
+    if(idx>=0){HISTORY_MERGED[idx]=tempEntry;}else{HISTORY_MERGED.push(tempEntry);}
+    openQuotePreview(id);
+  }catch(e){
+    alert('Could not fetch quote: '+(e.message||e));
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='\uD83D\uDC41 View';}
+  }
+}
 function closeUMModal(){document.getElementById('um-modal').classList.remove('open');}
 function openAddMDB(){document.getElementById('mdb-modal').classList.add('open');openMDBModal(-1);}
 function editMDBMember(i){document.getElementById('mdb-modal').classList.add('open');openMDBModal(i);}
