@@ -386,6 +386,17 @@ button,select,input[type=checkbox],input[type=radio]{touch-action:manipulation}
 .qt-act-btn{min-height:36px}
 .qb{min-height:36px}
 input,select{min-height:38px}
+
+/* ── TOAST NOTIFICATIONS ── */
+#toast-container{position:fixed;top:58px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:7px;pointer-events:none;width:min(370px,94vw)}
+.toast-item{background:#641414;color:#fff;padding:12px 16px 12px 14px;border-radius:6px;font-size:13px;font-family:'Segoe UI',Helvetica,Arial,sans-serif;line-height:1.4;box-shadow:0 4px 16px rgba(0,0,0,.22);pointer-events:auto;border-left:3px solid #D8C9B4;animation:toast-in .18s ease;display:flex;align-items:flex-start;gap:10px}
+.toast-item.ok{background:#1D6A45;border-left-color:#A8D5B5}
+.toast-item.err{background:#B71C1C;border-left-color:#F4C5C5}
+.toast-item.warn{background:#C8963E;border-left-color:#F4DEB0}
+.toast-msg{flex:1}
+.toast-x{background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:15px;padding:0;line-height:1;flex-shrink:0;margin-top:1px}
+.toast-x:hover{color:#fff}
+@keyframes toast-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
@@ -779,6 +790,20 @@ input,select{min-height:38px}
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn primary" onclick="saveMDBModal()">Save</button>
       <button class="btn" onclick="closeMDBModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast notifications -->
+<div id="toast-container"></div>
+
+<!-- Confirm dialog (replaces native confirm()) -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-box" style="max-width:380px">
+    <p id="confirm-msg" style="font-size:14px;color:#333;margin-bottom:20px;line-height:1.5"></p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn" id="confirm-no-btn">Cancel</button>
+      <button class="btn primary" id="confirm-yes-btn">Confirm</button>
     </div>
   </div>
 </div>
@@ -1463,7 +1488,7 @@ function buildPDFDoc(){
 
   // GLA COVER OPTIONS — apply coverRange filter same as on-screen
   const pdfCoverRange=Q.coverRange||'all';
-  const pdfOptions=r.options.filter(({k})=>{
+  const pdfOptions=(r.options||[{k:+Q.mult||3,pa:r.total_pa||0}]).filter(({k})=>{
     if(pdfCoverRange==='all')return true;
     if(pdfCoverRange==='low')return k<=3;
     if(pdfCoverRange==='high')return k>=3;
@@ -2725,13 +2750,17 @@ function renderHistory(){
       // a note, rather than buttons that would fail or show partial data.
       const ref=(s.q?.ref||'').replace(/'/g,"\\'");
       const canPDF=s.hasFullData&&ref;
+      const isAdminUser=CURRENT_USER?.role==='admin';
       const pdfBtn=canPDF
         ?`<button class="qb pdf" data-cdpdf="${s.id}" onclick="crossDevicePDF('${s.id}','${ref}')">&#11015; PDF</button>`
         :`<span class="qb" style="cursor:default;opacity:.45;font-size:10px" title="Re-save this quote on the originating device to enable cross-device PDF">PDF N/A</span>`;
       const viewBtn=canPDF
         ?`<button class="qb" style="background:#641414;color:#fff;border-color:#641414" data-cdview="${s.id}" onclick="crossDeviceView('${s.id}','${ref}')">&#128065; View</button>`
         :'';
-      actions=`<div class="qh-row">${viewBtn}${pdfBtn}</div>`
+      const delBtn=isAdminUser&&ref
+        ?`<button class="qb del" onclick="deleteGASOnlyQuote('${s.id}')">&#128465; Delete</button>`
+        :'';
+      actions=`<div class="qh-row">${viewBtn}${pdfBtn}${delBtn}</div>`
         +`<div class="qh-row"><span class="qb" style="cursor:default;opacity:.5;font-size:10px">&#127760; Another device</span><button class="qb" onclick="retroSyncOne('${s.id}')">&#128229; Save here</button></div>`;
     } else {
       const btnPdf=`<button class="qb pdf" onclick="historyPDF('${s.id}')">&#11015; Download PDF</button>`;
@@ -2830,17 +2859,51 @@ function viewQuoteSummary(id){
 }
 
 function deleteQuote(id){
-  if(CURRENT_USER?.role!=='admin'){alert('Only administrators can delete quotes.');return;}
+  if(CURRENT_USER?.role!=='admin'){showToast('Only administrators can delete quotes.','err');return;}
   const sq=SAVED_QUOTES.find(s=>s.id===id);
   const name=sq?.q?.company||'this quote';
-  if(!confirm(`Permanently delete "${name}"?\n\nThis cannot be undone.`))return;
-  const idx=SAVED_QUOTES.findIndex(s=>s.id===id);
-  if(idx>=0){
-    SAVED_QUOTES.splice(idx,1);
-    localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
-    renderHistory();
-    renderSavedList();
-  }
+  showConfirm('Permanently delete "'+name+'"? This cannot be undone.',async function(){
+    // Remove from localStorage
+    const idx=SAVED_QUOTES.findIndex(s=>s.id===id);
+    if(idx>=0){
+      SAVED_QUOTES.splice(idx,1);
+      localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
+      renderHistory();renderSavedList();
+    }
+    // Also delete from GAS Sheet
+    const ref=sq?.q?.ref;
+    if(ref&&ADM.gasUrl&&navigator.onLine){
+      try{
+        const res=await gasCall('deleteQuote',{ref});
+        if(res.status==='ok')showToast('Quote deleted.','ok');
+        else showToast('Removed locally. Sheet: '+(res.message||'could not delete'),'warn');
+      }catch{showToast('Removed locally — could not reach Sheet.','warn');}
+    } else {
+      showToast('Quote deleted.','ok');
+    }
+  },'Delete');
+}
+
+// Delete a GAS-only (cross-device) quote from the Sheet — admin only
+function deleteGASOnlyQuote(id){
+  if(CURRENT_USER?.role!=='admin'){showToast('Only administrators can delete quotes.','err');return;}
+  const entry=HISTORY_MERGED.find(s=>s.id===id);
+  const name=entry?.q?.company||'this quote';
+  const ref=entry?.q?.ref;
+  if(!ref){showToast('Cannot delete: no quote reference found.','err');return;}
+  showConfirm('Permanently delete "'+name+'" from the Sheet? This cannot be undone.',async function(){
+    if(!ADM.gasUrl||!navigator.onLine){showToast('Cannot reach Sheet — check GAS connection.','err');return;}
+    try{
+      const res=await gasCall('deleteQuote',{ref});
+      if(res.status==='ok'){
+        GAS_QUOTES=GAS_QUOTES.filter(function(q){return q.ref!==ref;});
+        renderHistory();
+        showToast('Quote deleted from Sheet.','ok');
+      } else {
+        showToast(res.message||'Could not delete from Sheet.','err');
+      }
+    }catch(e){showToast('Could not reach Sheet: '+(e.message||e),'err');}
+  },'Delete');
 }
 
 
@@ -3207,11 +3270,13 @@ async function saveUMModal(){
   closeUMModal();
 }
 async function deleteUMUser(uname){
-  if(uname===CURRENT_USER?.name){alert('You cannot delete your own account.');return;}
-  if(!confirm('Remove user "'+uname+'"? This cannot be undone.'))return;
-  const res=await gasAuthCall('deleteUser',{username:uname});
-  if(res.status!=='ok'){alert(res.message||'Could not delete user.');return;}
-  await renderUMList();
+  if(uname===CURRENT_USER?.name){showToast('You cannot delete your own account.','err');return;}
+  showConfirm('Remove user "'+uname+'"? This cannot be undone.',async function(){
+    const res=await gasAuthCall('deleteUser',{username:uname});
+    if(res.status!=='ok'){showToast(res.message||'Could not delete user.','err');return;}
+    await renderUMList();
+    showToast('User "'+uname+'" removed.','ok');
+  },'Remove');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3357,10 +3422,11 @@ function saveMDBModal(){
   if(document.getElementById('mdb-tbody2'))renderMDBStandalone();
 }
 function deleteMDBMember(idx){
-  if(!confirm('Remove this member from the database?'))return;
-  const db=getMDB();db.splice(idx,1);saveMDB(db);
-  const ns=new Set();MDB_SEL.forEach(i=>{if(i<idx)ns.add(i);else if(i>idx)ns.add(i-1);});
-  MDB_SEL=ns;renderMDB();
+  showConfirm('Remove this member from the database?',function(){
+    const db=getMDB();db.splice(idx,1);saveMDB(db);
+    const ns=new Set();MDB_SEL.forEach(i=>{if(i<idx)ns.add(i);else if(i>idx)ns.add(i-1);});
+    MDB_SEL=ns;renderMDB();
+  },'Remove');
 }
 function importMDBFile(file){
   if(!file)return;
@@ -3618,9 +3684,53 @@ async function crossDeviceView(id,ref){
   }
 }
 function closeUMModal(){document.getElementById('um-modal').classList.remove('open');}
+// ── Restore missing openUMModal (opens the add/edit user modal) ──
+function openUMModal(k){document.getElementById('um-modal').classList.add('open');openUMModalFn(k);}
 function openAddMDB(){document.getElementById('mdb-modal').classList.add('open');openMDBModal(-1);}
 function editMDBMember(i){document.getElementById('mdb-modal').classList.add('open');openMDBModal(i);}
 function closeMDBModal(){document.getElementById('mdb-modal').classList.remove('open');}
+
+/* ══════════════════════════════════════════════════════════════
+   TOAST + CONFIRM — branded notification system
+   Replaces native alert() / confirm() (which show domain URL)
+══════════════════════════════════════════════════════════════ */
+function showToast(msg,type,duration){
+  var c=document.getElementById('toast-container');
+  if(!c){return;}
+  var t=document.createElement('div');
+  t.className='toast-item'+(type?' '+type:'');
+  var span=document.createElement('span');span.className='toast-msg';span.textContent=String(msg||'');
+  var x=document.createElement('button');x.className='toast-x';x.textContent='×';
+  x.onclick=function(){if(t.parentNode)t.remove();};
+  t.appendChild(span);t.appendChild(x);
+  c.appendChild(t);
+  var ms=duration||3800;
+  setTimeout(function(){
+    t.style.transition='opacity .3s,transform .3s';
+    t.style.opacity='0';t.style.transform='translateY(-6px)';
+    setTimeout(function(){if(t.parentNode)t.remove();},320);
+  },ms);
+}
+function showConfirm(msg,onYes,yesLabel){
+  var modal=document.getElementById('confirm-modal');
+  var msgEl=document.getElementById('confirm-msg');
+  var yesBtn=document.getElementById('confirm-yes-btn');
+  var noBtn=document.getElementById('confirm-no-btn');
+  if(!modal||!msgEl||!yesBtn||!noBtn){if(confirm(msg))onYes();return;}
+  msgEl.textContent=msg;
+  yesBtn.textContent=yesLabel||'Confirm';
+  yesBtn.style.background='#B71C1C';yesBtn.style.borderColor='#B71C1C';
+  modal.classList.add('open');
+  function cleanup(){
+    modal.classList.remove('open');
+    yesBtn.onclick=null;noBtn.onclick=null;
+    yesBtn.style.background='';yesBtn.style.borderColor='';
+  }
+  yesBtn.onclick=function(){cleanup();onYes();};
+  noBtn.onclick=function(){cleanup();};
+}
+// Override native alert — all alert() calls now use branded toast
+window.alert=function(msg){showToast(String(msg||''));};
 // Rename openUMModal internal fn to avoid collision
 function openUMModalFn(editKey){
   // USERS_CACHE is warm by the time this runs — renderUMList() (called when
