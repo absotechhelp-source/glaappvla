@@ -1519,9 +1519,9 @@ function buildPDFDoc(){
   const fNc=+(Q.f_nCh||0),fNp=+(Q.f_nPar||0);
   const funRows=[
     ['Member',1,fmt(Q.f_mBen||0)],
-    [inc_sp?'Spouse':'—',inc_sp?1:'—',inc_sp?fmt(+(Q.f_sBen||Q.f_mBen||0)):'—'],
-    ['Child (per child)',fNc||0,fNc?fmt(Math.round((Q.f_mBen||0)*(+Q.f_cPct||0.5))):'—'],
   ];
+  if(inc_sp)funRows.push(['Spouse',1,fmt(+(Q.f_sBen||Q.f_mBen||0))]);
+  funRows.push(['Child (per child)',fNc||0,fNc?fmt(Math.round((Q.f_mBen||0)*(+Q.f_cPct||0.5))):'—']);
   if(fNp>0)funRows.push(['Parent (per parent)',fNp,fmt(Math.round((Q.f_mBen||0)*(+Q.f_pPct||0.25)))]);
   funRows.forEach((row,i)=>{ y=tblRow(funCols,row,ML,y,7.5,i%2===0?[255,255,255]:[248,245,241]); });
   y+=4;
