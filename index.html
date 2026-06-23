@@ -1531,7 +1531,14 @@ function buildPDFDoc(){
 
   // SUPPLEMENTARY BENEFITS
   const supRows=[];
-  if(Q.inc_funeral)supRows.push(['Funeral Cover','Complementary benefit — member, spouse and child funeral cover included at no extra cost.']);
+  if(Q.inc_funeral){
+    const _fParts=['member'];
+    if(Q.f_scope!=='member_only'){_fParts.push('spouse');if(+Q.f_nCh>0)_fParts.push('child');}
+    if(Q.f_scope==='member_and_dependants'&&+Q.f_nPar>0)_fParts.push('parent');
+    const _fLast=_fParts.pop();
+    const _fDesc=(_fParts.length?_fParts.join(', ')+' and ':'')+_fLast;
+    supRows.push(['Funeral Cover','Complementary benefit — '+_fDesc+' funeral cover included at no extra cost.']);
+  }
   if(Q.inc_ad)supRows.push(['Accidental Death Cover','100% of the GLA benefit chosen is paid on death by accident of the member.']);
   const capLblPdf=c=>({'25_pct':'25%','50_pct':'50%','75_pct':'75%','100_pct':'100%','follow_gla':Q.mult+'×','1x_salary':'100%'}[c]||'100%');
   if(Q.inc_dis)supRows.push(['Total Permanent Disability',capLblPdf(Q.dis_cap)+' of annual salary paid on total and permanent disability of the member.']);
@@ -1603,7 +1610,7 @@ function buildPDFDoc(){
     if(Q.f_scope==='member_and_dependants'&&+Q.f_nPar>0){
       const pPctNum=Math.round((+Q.f_pPct||0.25)*100);
       const pBenDescAmt=Math.round((+Q.f_mBen||0)*(+Q.f_pPct||0.25));
-      funeralDescParts.push('parent funeral benefit of MWK '+fmt(pBenDescAmt)+' per parent ('+pPctNum+'% of member benefit), for up to 4 parents');
+      funeralDescParts.push('parent funeral benefit of MWK '+fmt(pBenDescAmt)+' per parent ('+pPctNum+'% of member benefit), for up to 2 parents');
     }
     descs.push(['2. Funeral Cover — Complementary Benefit (included at no extra cost)','Vanguard Life will provide funeral benefit at no additional premium cost: '+funeralDescParts.join(', ')+'.']);
   }
