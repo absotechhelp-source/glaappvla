@@ -1902,7 +1902,7 @@ function syncQ3(){
   // which previously made "0 children" or "0 parents" impossible to save.
   const ch=+Q.f_nCh, pa=+Q.f_nPar;
   Q.f_nCh=Math.min(Number.isFinite(ch)?ch:2,4);
-  Q.f_nPar=Math.min(Number.isFinite(pa)?pa:0,4);
+  Q.f_nPar=Math.min(Number.isFinite(pa)?pa:0,2);
 }
 function syncQ4(){
   Q.disc=Math.max(0,+document.getElementById('q-disc').value)/100;
@@ -2144,7 +2144,7 @@ function renderBenefits(){
          </div>
          <div class="fld">
            <label>Parents (max 4)</label>
-           <input type="number" min="0" max="4" value="${clampCount(Q.f_nPar,0)}" onchange="Q.f_nPar=Math.min(+this.value,4);renderBenefits()">
+           <input type="number" min="0" max="2" value="${clampCount(Q.f_nPar,0)}" onchange="Q.f_nPar=Math.min(+this.value,2);renderBenefits()">
          </div>
          ${+Q.f_nPar>0?`<div class="fld">
            <label>Parent Benefit % of Member</label>
