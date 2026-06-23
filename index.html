@@ -1601,7 +1601,7 @@ function buildPDFDoc(){
   if(y>200){doc.addPage();y=20;}
   doc.setFillColor(...M);doc.rect(ML,y,CW,8,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...WH);
-  doc.text('BENEFIT DESCRIPTIONS',ML+4,y+5.5);y+=14;
+  doc.text('BENEFIT DESCRIPTIONS',ML+4,y+5.5);y+=12;
 
   const descs=[];
   descs.push(['1. Group Life Assurance (GLA) — Core Benefit','In the event of death of an employee while in service of the employer, a tax-free Group Life Benefit equivalent to the chosen multiple of annual salary shall be payable to the nominated beneficiaries.']);
@@ -1628,10 +1628,10 @@ function buildPDFDoc(){
   descs.forEach(([hd,body],i)=>{
     if(y>250){doc.addPage();y=20;}
     doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...TX);
-    doc.text(hd,ML,y);y+=5.5;
+    doc.text(hd,ML,y);y+=5;
     doc.setFont('helvetica','normal');doc.setFontSize(9);
     const lines=doc.splitTextToSize(body,CW);
-    doc.text(lines,ML+4,y);y+=lines.length*5+6;
+    doc.text(lines,ML+4,y);y+=lines.length*5+3;
   });
 
   // Validity + Signatories (after benefit descriptions)
