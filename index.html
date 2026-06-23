@@ -1520,7 +1520,7 @@ function buildPDFDoc(){
   const funRows=[
     ['Member',1,fmt(Q.f_mBen||0)],
   ];
-  if(inc_sp)funRows.push(['Spouse',1,fmt(+(Q.f_sBen||Q.f_mBen||0))]);
+  if(Q.f_scope!=='member_only')funRows.push(['Spouse',1,fmt(Q.f_mBen||0)]);
   funRows.push(['Child (per child)',fNc||0,fNc?fmt(Math.round((Q.f_mBen||0)*(+Q.f_cPct||0.5))):'—']);
   if(fNp>0)funRows.push(['Parent (per parent)',fNp,fmt(Math.round((Q.f_mBen||0)*(+Q.f_pPct||0.25)))]);
   funRows.forEach((row,i)=>{ y=tblRow(funCols,row,ML,y,7.5,i%2===0?[255,255,255]:[248,245,241]); });
@@ -3015,7 +3015,7 @@ function buildShareCards(sq){
   if(hasFun){
     const funRows=[
       ['Member','1',(mBen).toLocaleString('en-GB')],
-      ['Spouse (if selected)',q.inc_sp?'1':'—',q.inc_sp?(+(q.f_sBen||mBen)).toLocaleString('en-GB'):'—'],
+      ['Spouse (if selected)',q.f_scope!=='member_only'?'1':'—',q.f_scope!=='member_only'?mBen.toLocaleString('en-GB'):'—'],
       ['Child (per child)',nc||'—',nc?Math.round(mBen*cPct).toLocaleString('en-GB'):'—'],
     ];
     if(npar>0)funRows.push(['Parent (per parent)',npar,Math.round(mBen*(+q.f_pPct||0)).toLocaleString('en-GB')]);
