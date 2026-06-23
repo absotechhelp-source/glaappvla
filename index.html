@@ -1276,7 +1276,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 // They are NEVER used for pricing — calc always runs in GAS.
 const _SECTORS_FALLBACK={FIN:{l:'Financial Services / Professional',f:1.00},RET:{l:'Retail / Wholesale Trade',f:1.05},MAN:{l:'Manufacturing / Light Industry',f:1.10},TRN:{l:'Transport / Logistics',f:1.20},CON:{l:'Construction / Civil Engineering',f:1.30},AGR:{l:'Agriculture / Farming',f:1.25},MIN:{l:'Mining / Quarrying',f:1.50},HEA:{l:'Healthcare / Medical',f:1.05},EDU:{l:'Education / Public Sector',f:1.00},SEC:{l:'Security / Protective Services',f:1.35}};
 const _TIERS_FALLBACK=[{l:'Small (<50)',n:1,maxD:0.05,maxL:0.25},{l:'Small-Med (50-99)',n:50,maxD:0.08,maxL:0.20},{l:'Medium (100-199)',n:100,maxD:0.15,maxL:0.15},{l:'Med-Large (200-499)',n:200,maxD:0.20,maxL:0.12},{l:'Large (500-999)',n:500,maxD:0.25,maxL:0.10},{l:'Very Large (1000+)',n:1000,maxD:0.30,maxL:0.08}];
-const _ADM_FALLBACK={expDiv:0.70,ciLoad:0.20,disFac:0.40,adFac:0.10,spSetback:3,parentOffset:20,childMort:0.003,ciMaxAge:75,validDays:30,funeralMin:500000,funeralMax:7500000};
+const _ADM_FALLBACK={expDiv:1.20,ciLoad:0.20,disFac:0.40,adFac:0.10,spSetback:3,parentOffset:20,childMort:0.003,ciMaxAge:75,validDays:30,funeralMin:500000,funeralMax:7500000};
 let SECTORS={..._SECTORS_FALLBACK};  // replaced by GAS on connect
 let TIERS=[..._TIERS_FALLBACK];      // replaced by GAS on connect
 let GAS_DEFAULTS=null;               // set once getConfig succeeds; drives resetAdmin
@@ -1343,6 +1343,8 @@ const Q={
   inc_dis:true,dis_cap:'follow_gla',
   inc_ad:true,
   inc_sp:true,sp_pct:0.50,sp_mar:0.50,
+  inc_adb:false,adb_accel_pct:0.20,
+  inc_edu:false,edu_fee_annual:500000,edu_max_children:3,edu_max_years:6,edu_discount_rate:0.15,edu_pct_with_kids:'auto',edu_avg_kids:'auto',
   disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,
   coverAll:true
 };
@@ -1544,6 +1546,8 @@ function buildPDFDoc(){
   if(Q.inc_dis)supRows.push(['Total Permanent Disability',capLblPdf(Q.dis_cap)+' of annual salary paid on total and permanent disability of the member.']);
   if(Q.inc_ci)supRows.push(['Critical Illness (CI)',capLblPdf(Q.ci_cap)+' of annual salary paid on first diagnosis of a covered critical illness.']);
   if(Q.inc_sp)supRows.push([`Spousal GLA Cover`,`${Math.round(+Q.sp_pct*100)}% of the GLA benefit chosen is paid on death of the member's spouse.`]);
+  if(Q.inc_adb)supRows.push(['Accelerated Death Benefit (ADB)',`${Math.round(+(Q.adb_accel_pct||0.20)*100)}% of the GLA sum assured is paid immediately on diagnosis of a covered life-threatening condition. The remaining balance is retained and paid on death.`]);
+  if(Q.inc_edu)supRows.push(['Education Cover',`Pays a present-value lump sum on member death to fund school fees for up to ${Q.edu_max_children||3} child(ren) for ${Q.edu_max_years||6} years at MWK ${fmt(+Q.edu_fee_annual||0)} per annum.`]);
 
   const sw=[55,CW-55];
   y=tblHdr([['SUPPLEMENTARY BENEFITS INCLUDED',CW]],ML,y);
@@ -1618,6 +1622,8 @@ function buildPDFDoc(){
   if(Q.inc_dis)descs.push([`${descs.length+1}. Total Permanent Disability Cover`,'100% of the GLA benefit chosen is paid on total and permanent disability of the member. Temporary disability is not covered. This cover ceases at the end of the policy term or upon the employee\'s exit from the scheme.']);
   if(Q.inc_ci)descs.push([`${descs.length+1}. Critical Illness (CI)`,'1 × annual salary is paid on first diagnosis of a covered critical illness. This cover ceases at the end of the policy term or upon the employee\'s exit from the scheme.']);
   if(Q.inc_sp)descs.push([`${descs.length+1}. Spousal Cover`,`${Math.round(+Q.sp_pct*100)}% of the GLA benefit chosen is paid on death of the member\'s spouse. This cover ceases at the end of the policy term or upon the employee\'s exit from the scheme.`]);
+  if(Q.inc_adb)descs.push([`${descs.length+1}. Accelerated Death Benefit (ADB — Advanced)`,'The Accelerated Death Benefit represents an advanced living safeguard linked to the primary GLA scheme. Upon confirmed medical diagnosis of a covered life-threatening condition (such as cancer, heart attack, or major stroke), '+Math.round(+(Q.adb_accel_pct||0.20)*100)+'% of the member\'s total sum assured is disbursed immediately as a cash payout. The remaining balance is retained and remains fully payable to beneficiaries upon subsequent death. Coverage resets to 100% at the start of the following policy year.']);
+  if(Q.inc_edu)descs.push([`${descs.length+1}. Education Cover`,'Education Cover provides financial protection for the children of insured members. Upon the death of an insured member, the policy pays a present-value lump sum to fund school fees for up to '+( Q.edu_max_children||3)+' child(ren) for a maximum of '+(Q.edu_max_years||6)+' years, based on an annual fee of MWK '+fmt(+Q.edu_fee_annual||0)+'. The benefit is computed as an actuarially derived annuity-due and paid directly to the estate or legal guardian at claim settlement.']);
 
   descs.forEach(([hd,body],i)=>{
     if(y>250){doc.addPage();y=20;}
@@ -1969,6 +1975,12 @@ async function _calcViaGAS(gasUrl){
   const qEnc=encodeURIComponent(JSON.stringify(q));
   const token=getSessionToken();
   let url=gasUrl+'?action=calc&q='+qEnc+(token?'&token='+encodeURIComponent(token):'');
+  // Admin-only: send current assumption overrides so GAS uses live values
+  if(CURRENT_USER?.role==='admin'){
+    const admPayload={};
+    ADM_META.forEach(([k])=>{if(typeof ADM[k]==='number')admPayload[k]=ADM[k];});
+    url+='&adm='+encodeURIComponent(JSON.stringify(admPayload));
+  }
 
   if(MODE==='full'){
     if(!MEMBERS.length)throw new Error('No members selected.');
@@ -2019,6 +2031,8 @@ function renderSummary(){
   if(Q.inc_dis)bRows.push(['Disability — '+capLbl(Q.dis_cap),r.dis*12,'#C8963E']);
   if(Q.inc_ad)bRows.push(['Accidental Death (AD)',r.ad*12,'#2D5A3D']);
   if(Q.inc_sp)bRows.push(['Spouse GLA',r.sp*12,'#B84C4C']);
+  if(Q.inc_adb&&r.adb)bRows.push(['ADB — Accelerated Death Benefit',r.adb*12,'#6B3FA0']);
+  if(Q.inc_edu&&r.edu)bRows.push(['Education Cover',r.edu*12,'#1A6B3C']);
 
   // Issue #4: filter options by Q.coverAll
   const coverRange=Q.coverRange||'all';
@@ -2188,6 +2202,35 @@ function renderBenefits(){
          <input type="range" min="0" max="100" value="${Math.round(+Q.sp_mar*100)}" oninput="Q.sp_mar=+this.value/100;document.getElementById('sp-mar-disp').textContent=this.value+'%'">
        </div>
      </div></div>`},
+    {k:'inc_adb',label:'ADB — Accelerated Death Benefit',
+     config:()=>`<div class="bcfg"><div class="fg">
+       <div class="fld"><label>Acceleration % of Sum Assured</label>
+         <select onchange="Q.adb_accel_pct=+this.value">
+           <option value="0.10" ${+Q.adb_accel_pct===0.10?'selected':''}>10%</option>
+           <option value="0.20" ${+Q.adb_accel_pct===0.20?'selected':''}>20%</option>
+           <option value="0.25" ${+Q.adb_accel_pct===0.25?'selected':''}>25%</option>
+           <option value="0.30" ${+Q.adb_accel_pct===0.30?'selected':''}>30%</option>
+         </select></div>
+     </div></div>`},
+    {k:'inc_edu',label:'Education Cover',
+     config:()=>`<div class="bcfg"><div class="fg">
+       <div class="fld"><label>Annual School Fee (MWK)</label>
+         <input type="number" min="100000" step="50000" value="${+Q.edu_fee_annual||500000}" onchange="Q.edu_fee_annual=+this.value"></div>
+       <div class="fld"><label>Max Children Covered</label>
+         <select onchange="Q.edu_max_children=+this.value">
+           <option value="1" ${+Q.edu_max_children===1?'selected':''}>1 child</option>
+           <option value="2" ${+Q.edu_max_children===2?'selected':''}>2 children</option>
+           <option value="3" ${+Q.edu_max_children===3?'selected':''}>3 children</option>
+           <option value="4" ${+Q.edu_max_children===4?'selected':''}>4 children</option>
+         </select></div>
+       <div class="fld"><label>Max Years of Cover</label>
+         <select onchange="Q.edu_max_years=+this.value">
+           <option value="4" ${+Q.edu_max_years===4?'selected':''}>4 years</option>
+           <option value="6" ${+Q.edu_max_years===6?'selected':''}>6 years</option>
+           <option value="8" ${+Q.edu_max_years===8?'selected':''}>8 years</option>
+           <option value="10" ${+Q.edu_max_years===10?'selected':''}>10 years</option>
+         </select></div>
+     </div></div>`},
   ];
 
   document.getElementById('ben-list').innerHTML=benDefs.map(({k,label,config})=>`
@@ -2340,27 +2383,47 @@ function renderSavedList(){
    ADMIN SETTINGS
 ═══════════════════════════════════════════════════════ */
 const ADM_META=[
-  ['expDiv','Expense Loading Divisor',0.60,0.85,0.01,'GLA rate divisor (loaded_rate = net_rate ÷ divisor). Default 0.70'],
-  ['ciLoad','CI Rate Loading',0.10,0.35,0.01,'CI table embedded loading stripped before pricing. Default 0.20'],
-  ['disFac','Disability Rate Factor',0.30,0.65,0.01,'Disability as fraction of net CI premium. Default 0.40'],
-  ['adFac','AD Rate Factor',0.05,0.20,0.01,'AD as fraction of GLA premium. Default 0.10'],
-  ['spSetback','Spouse Age Setback (yrs)',0,10,1,'Years deducted from member age for spouse rate. Default 3'],
-  ['parentOffset','Parent Age Offset (yrs)',10,30,1,'Added to member age for parent funeral proxy rate. Default 20'],
-  ['childMort','Child Mortality Rate (pa)',0.001,0.010,0.001,'Flat annual child mortality rate. Default 0.003'],
-  ['ciMaxAge','CI Cover Max Age',65,80,1,'Members above this age excluded from CI cover. Default 75'],
-  ['validDays','Quote Validity (days)',14,90,1,'Days from issue before quote expires. Default 30'],
+  // ── Actuarial Engine Parameters — sent to GAS on every calc (admin only) ─
+  ['expDiv',         'Expense Loading Divisor (GLA)',       0.50, 1.50, 0.01,   'Core GLA rate divisor: loaded_rate = net_rate ÷ expDiv. Applies to GLA and Spouse GLA only. Spec default: 1.20'],
+  ['ciLoad',         'CI Rate Loading Stripper',            0.10, 0.40, 0.01,   'Embedded CI table loading stripped before pricing: net = table / (1 + ciLoad). Default: 0.20'],
+  ['disFac',         'Disability Rate Factor',              0.20, 0.65, 0.01,   'TPD premium as an exact fraction of the blended net CI rate. Default: 0.40'],
+  ['adFac',          'Accidental Death Factor',             0.05, 0.25, 0.01,   'Standard ADB as a flat % addition over the final loaded GLA premium. Default: 0.10'],
+  ['spSetback',      'Spouse Age Setback (years)',          0,    6,    1,      'Years subtracted from member age for spouse rate proxy. Floor: age 16. Default: 3'],
+  ['parentOffset',   'Parent Age Offset (years)',           15,   25,   1,      'Years added to member age for parent funeral rate proxy. Ceiling: age 80. Default: 20'],
+  ['childMort',      'Child Mortality Rate',                0.001,0.010,0.001,  'Flat annual risk coefficient per unit of child sum assured (funeral rider). Default: 0.003'],
+  ['ciMaxAge',       'CI / TPD Max Cover Age',              60,   80,   1,      'Members above this age excluded from CI and TPD riders. Default: 75'],
+  ['edu_discount_rate','Education Discount Rate',           0.05, 0.30, 0.01,   'Annuity-due discount rate for Education Cover present value computation. Default: 0.15'],
+  // ── Product / UI Parameters ─────────────────────────────────────────────
+  ['validDays',      'Quote Validity Period (days)',        14,   90,   1,      'Days a PDF quote remains valid from date of issue — shown on the quote footer. Default: 30'],
+  ['funeralMin',     'Min Funeral Benefit (MWK)',           500000, 2000000,  500000, 'Lower bound of the funeral benefit selector in the quoting wizard. Default: 500,000'],
+  ['funeralMax',     'Max Funeral Benefit (MWK)',           3000000,15000000, 500000, 'Upper bound of the funeral benefit selector in the quoting wizard. Default: 7,500,000'],
 ];
 
+
+
+
+
+
+
+
+
+
+
 function renderAdminFields(){
-  document.getElementById('admin-fields').innerHTML=ADM_META.map(([k,lbl,mn,mx,st,hint])=>`
-    <div class="fld">
-      <label>${lbl}</label>
-      <input type="number" id="adm-${k}" min="${mn}" max="${mx}" step="${st}" value="${ADM[k]}" style="font-family:monospace">
-      <span class="adm-note">${hint}</span>
-    </div>`).join('');
+  const isAdmin=CURRENT_USER?.role==='admin';
+  const liveNote=isAdmin
+    ?'<p style="font-size:11px;color:#1D6A45;background:#E8F5E9;border:1px solid #A5D6A7;padding:7px 10px;border-radius:4px;margin-bottom:12px">&#10003; Actuarial parameters are sent live to the GAS engine on every quote. Changes take effect immediately without redeployment.</p>'
+    :'<p style="font-size:11px;color:#888;background:#F5F5F5;border:1px solid #DDD;padding:7px 10px;border-radius:4px;margin-bottom:12px">&#8505; Admin role required to modify engine parameters.</p>';
+  const engineKeys=['expDiv','ciLoad','disFac','adFac','spSetback','parentOffset','childMort','ciMaxAge','edu_discount_rate'];
+  document.getElementById('admin-fields').innerHTML=liveNote+ADM_META.map(function([k,lbl,mn,mx,st,hint]){
+    const isEng=engineKeys.includes(k);
+    const sep=k==='validDays'?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--T2);margin:16px 0 8px;border-bottom:1px solid var(--BD);padding-bottom:4px">Product / UI Settings</div>':'';
+    return sep+'<div class="fld"><label>'+lbl+(isEng?'<span style="font-size:9px;color:#1D6A45;margin-left:6px;font-weight:400">&#9654; ENGINE</span>':'')+'</label>'
+      +'<input type="number" id="adm-'+k+'" min="'+mn+'" max="'+mx+'" step="'+st+'" value="'+ADM[k]+'" style="font-family:monospace"'+(isAdmin?'':' disabled title="Admin only"')+'>'
+      +'<span class="adm-note">'+hint+'</span></div>';
+  }).join('');
   document.getElementById('adm-gas').value=ADM.gasUrl||'';
 }
-
 function saveAdmin(){
   ADM_META.forEach(([k])=>{const v=parseFloat(document.getElementById('adm-'+k)?.value);if(!isNaN(v))ADM[k]=v;});
   const gasVal=(document.getElementById('adm-gas')?.value||'').trim();
@@ -2401,7 +2464,7 @@ function showAdmin(){
 function startQuote(m){
   MODE=m;STEP=1;MEMBERS=[];RESULTS=null;
   // reset form state
-  Object.assign(Q,{company:'',city:'',ref:'',prepby:'',date:'',n:'',sal:'',age:'',pf:0.17,sec:'FIN',mult:3,inc_funeral:true,f_scope:'member_and_dependants',f_mBen:3000000,f_nCh:2,f_cPct:0.50,f_nPar:0,f_pPct:0.25,inc_ci:true,ci_cap:'100_pct',inc_dis:true,dis_cap:'follow_gla',inc_ad:true,inc_sp:true,sp_pct:0.50,sp_mar:0.50,disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,coverAll:true,coverRange:'all'});
+  Object.assign(Q,{company:'',city:'',ref:'',prepby:'',date:'',n:'',sal:'',age:'',pf:0.17,sec:'FIN',mult:3,inc_funeral:true,f_scope:'member_and_dependants',f_mBen:3000000,f_nCh:2,f_cPct:0.50,f_nPar:0,f_pPct:0.25,inc_ci:true,ci_cap:'100_pct',inc_dis:true,dis_cap:'follow_gla',inc_ad:true,inc_sp:true,sp_pct:0.50,sp_mar:0.50,inc_adb:false,adb_accel_pct:0.20,inc_edu:false,edu_fee_annual:500000,edu_max_children:3,edu_max_years:6,edu_discount_rate:0.15,edu_pct_with_kids:'auto',edu_avg_kids:'auto',disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,coverAll:true,coverRange:'all'});
   // Populate sector dropdown
   const secEl=document.getElementById('q-sec');
   secEl.innerHTML=Object.entries(SECTORS).map(([k,v])=>`<option value="${k}">${v.l} (×${v.f})</option>`).join('');
