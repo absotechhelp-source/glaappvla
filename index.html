@@ -476,6 +476,7 @@ input,select{min-height:38px}
         </div>
       </div>
       <div class="sb-foot">Vanguard Life Assurance Company Limited &middot; Malawi</div>
+      <div style="font-size:9px;font-style:italic;color:#B0A898;text-align:center;padding:4px 8px 2px;">Designed and developed by Anderson Tichiwangani using AI tools!</div>
     </aside>
 
     <!-- MAIN CONTENT -->
@@ -1526,7 +1527,14 @@ function buildPDFDoc(){
   funRows.push(['Child (per child)',fNc||0,fNc?fmt(Math.round((Q.f_mBen||0)*(+Q.f_cPct||0.5))):'—']);
   if(fNp>0)funRows.push(['Parent (per parent)',fNp,fmt(Math.round((Q.f_mBen||0)*(+Q.f_pPct||0.25)))]);
   funRows.forEach((row,i)=>{ y=tblRow(funCols,row,ML,y,7.5,i%2===0?[255,255,255]:[248,245,241]); });
-  y+=4;
+  y+=6;
+  // ── Validity disclaimer on page 1 ──────────────────────
+  doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=6;
+  doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...GR);
+  doc.text(`This quotation is valid for ${ADM.validDays} days from the date of issue and is subject to the satisfactory completion of all required documentation. Premiums are reviewed annually.`,ML,y,{maxWidth:CW});
+  y+=10;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+  doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);
 
   // ── PAGE 2 ──────────────────────────────────────────────
   doc.addPage();y=20;
@@ -1634,17 +1642,9 @@ function buildPDFDoc(){
     doc.text(lines,ML+4,y);y+=lines.length*5+3;
   });
 
-  // Validity + Signatories (after benefit descriptions)
+  // Signatories — disclaimer already on page 1
   y+=4;
-  if(y>250){doc.addPage();y=20;}
-  doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=6;
-  doc.setFont('helvetica','italic');doc.setFontSize(9);doc.setTextColor(...GR);
-  doc.text(`This quotation is valid for ${ADM.validDays} days from the date of issue and is subject to the satisfactory completion of all required documentation. Premiums are reviewed annually.`,ML,y,{maxWidth:CW});
-  y+=10;
-  doc.setFont('helvetica','normal');
-  doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);
-  y+=12;
-  // Signatories
+  if(y>H-22){doc.addPage();y=20;}
   const sigW=CW/3;
   const sigs=[
     ['Chimwemwe Khonje','Head of Business Development','ckhonje@vanguardlifemw.com'],
@@ -1657,7 +1657,7 @@ function buildPDFDoc(){
     const sx=ML+i*sigW;
     doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...TX);
     doc.text(name,sx+sigW/2,y,{align:'center'});
-    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...GR);
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GR);
     doc.text(title,sx+sigW/2,y+5,{align:'center'});
     doc.text(email,sx+sigW/2,y+10,{align:'center'});
   });
@@ -1690,6 +1690,10 @@ function buildPDFDoc(){
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
   const excl=['Own act of omission or negligence','Suicide or self-inflicted injury','Alcohol or drug-related causes','Fraudulent acts','Hazardous leisure activities (winter sports, diving, rock climbing, mountaineering, etc.)','Active service or duty in armed forces','Riot, civil commotion, strikes, labour disturbances or acts of terrorism','War risk, act of foreign enemy, hostilities or civil war','Nuclear events','Abscondence (illicitly escaping or hiding of a fugitive)','Deliberate exposure to exceptional danger'];
   excl.forEach(e=>{doc.text(`• ${e}`,ML,y);y+=5.5;});
+
+  // Credit line — bottom of last page
+  doc.setFont('helvetica','italic');doc.setFontSize(7);doc.setTextColor(180,170,160);
+  doc.text('Designed and developed by Anderson Tichiwangani using AI tools!',ML+CW/2,H-28,{align:'center'});
 
   // VLA Footer — actual letterhead footer image
   const totalPages=doc.getNumberOfPages();
