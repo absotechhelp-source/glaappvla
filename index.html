@@ -1691,10 +1691,6 @@ function buildPDFDoc(){
   const excl=['Own act of omission or negligence','Suicide or self-inflicted injury','Alcohol or drug-related causes','Fraudulent acts','Hazardous leisure activities (winter sports, diving, rock climbing, mountaineering, etc.)','Active service or duty in armed forces','Riot, civil commotion, strikes, labour disturbances or acts of terrorism','War risk, act of foreign enemy, hostilities or civil war','Nuclear events','Abscondence (illicitly escaping or hiding of a fugitive)','Deliberate exposure to exceptional danger'];
   excl.forEach(e=>{doc.text(`• ${e}`,ML,y);y+=5.5;});
 
-  // Credit line — bottom of last page
-  doc.setFont('helvetica','italic');doc.setFontSize(7);doc.setTextColor(180,170,160);
-  doc.text('Designed and developed by Anderson Tichiwangani using AI tools!',ML+CW/2,H-28,{align:'center'});
-
   // VLA Footer — actual letterhead footer image
   const totalPages=doc.getNumberOfPages();
   for(let p=1;p<=totalPages;p++){
