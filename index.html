@@ -1932,7 +1932,15 @@ async function navNext(){
     // Show step 5 with spinner while GAS computes
     COMPUTING=true;
     showStep(5);
-    const ok=await computeResults();
+    let ok=false;
+    try{
+      ok=await computeResults();
+    }catch(err){
+      // Any uncaught failure (network, GAS error, bad response) must still
+      // release the spinner — otherwise the user is stuck on step 5 forever.
+      showToast(err.message||'Quote calculation failed. Please try again.','error');
+      ok=false;
+    }
     COMPUTING=false;
     if(!ok){
       // Calculation failed — go back to pricing step
@@ -1960,14 +1968,19 @@ async function computeResults(){
   // GAS-only: no local fallback. Rate tables and pricing logic live in GAS exclusively.
   const gasUrl=ADM.gasUrl||'';
   if(!gasUrl){
-    alert('GAS URL not configured. Go to Admin Settings and enter the deployment URL.');
+    showToast('GAS URL not configured. Go to Admin Settings and enter the deployment URL.','error');
     return false;
   }
   if(!navigator.onLine){
-    alert('No internet connection. An active connection is required to generate quotes.');
+    showToast('No internet connection. An active connection is required to generate quotes.','error');
     return false;
   }
-  return await _calcViaGAS(gasUrl);
+  try{
+    return await _calcViaGAS(gasUrl);
+  }catch(err){
+    showToast(err.message||'GAS pricing engine error. Please try again.','error');
+    return false;
+  }
 }
 
 async function _calcViaGAS(gasUrl){
