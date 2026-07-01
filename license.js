@@ -16,7 +16,7 @@
 //    on / after expiry date     : red banner, Sign In disabled
 // ================================================================
 
-var LICENCE_EXPIRY    = '2026-06-30';  // ← update this to renew
+var LICENCE_EXPIRY    = '2026-07-07';  // ← update this to renew
 var LICENCE_WARN_DAYS = 14;            // days before expiry to warn
 
 // ── Inject banner elements into .login-box ───────────────────────
