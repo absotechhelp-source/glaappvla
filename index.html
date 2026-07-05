@@ -452,7 +452,7 @@ input,select{min-height:38px}
     <div class="login-err" id="login-err">Incorrect username or password.</div>
     <div class="login-fld"><label>Username</label><input id="login-user" type="text" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="login-fld"><label>Password</label><input id="login-pass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <button class="login-btn" id="login-btn" onclick="doLogin()" disabled style="opacity:.6;cursor:not-allowed">Loading…</button>
     <div class="login-footer">Authorised users only. Contact your administrator for access.</div>
   </div>
 </div>
@@ -3766,6 +3766,9 @@ function renderHomeQuotes(){
 
 
 window.onload=function(){
+  // Re-enable login button now that all scripts are fully loaded
+  const lb=document.getElementById('login-btn');
+  if(lb){lb.disabled=false;lb.textContent='Sign In';lb.style.opacity='';lb.style.cursor='';}
   renderSavedList();
   // ── SESSION RESTORE: if a valid token + user is in localStorage, skip the login screen ──
   var _tok=localStorage.getItem('vla_gla_token');
