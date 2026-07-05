@@ -397,6 +397,43 @@ input,select{min-height:38px}
 .toast-x{background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:15px;padding:0;line-height:1;flex-shrink:0;margin-top:1px}
 .toast-x:hover{color:#fff}
 @keyframes toast-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+/* ── PRODUCT HUB ───────────────────────────────────────── */
+.hub-hdr{margin-bottom:14px}
+.hub-hdr h1{font-size:19px;font-weight:700;color:#111;margin-bottom:2px}
+.hub-hdr p{font-size:12px;color:#999}
+.prod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.prod-tile{background:#fff;border:1.5px solid #E4DDD2;border-radius:10px;padding:14px 12px 12px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:95px}
+.prod-tile:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.prod-tile:active{transform:scale(.97)}
+.prod-tile-icon{font-size:20px;margin-bottom:6px;line-height:1}
+.prod-tile-name{font-size:11px;font-weight:700;color:#111;margin-bottom:2px;line-height:1.25}
+.prod-tile-sub{font-size:9.5px;color:#AAA;line-height:1.4;flex:1}
+.prod-tile.gla{border-left:3.5px solid #641414}.prod-tile.gla:hover{background:#FBF7F6}
+.prod-tile.gfc{border-left:3.5px solid #1A3A5C}.prod-tile.gfc:hover{background:#F4F7FB}
+.prod-tile.gfs{border-left:3.5px solid #1D6A45}.prod-tile.gfs:hover{background:#F3F8F5}
+.prod-tile.gcl{border-left:3.5px solid #8B4A00}.prod-tile.gcl:hover{background:#FBF6F0}
+.prod-tile.ret{border-left:3.5px solid #4A2D7A}.prod-tile.ret:hover{background:#F7F4FC}
+.soon-tag{position:absolute;top:6px;right:7px;font-size:7px;font-weight:700;padding:2px 5px;border-radius:3px;background:#F0EAE0;color:#C0A87A;text-transform:uppercase;letter-spacing:.4px}
+.gla-panel{background:#FBF7F6;border:1.5px solid #E8CECE;border-radius:10px;padding:14px;margin-bottom:18px;animation:hub-in .15s ease}
+.gla-panel-hdr{font-size:10.5px;font-weight:700;color:#641414;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.gla-panel-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prod-badge{display:inline-block;font-size:7.5px;font-weight:700;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px;vertical-align:middle}
+.prod-badge.gla{background:#F7EDED;color:#641414;border:1px solid #EDCECE}
+.prod-badge.gfc{background:#EDF2F8;color:#1A3A5C;border:1px solid #C4D5E9}
+.prod-badge.gfs{background:#EEF7F2;color:#1D6A45;border:1px solid #BBD9C8}
+.prod-badge.gcl{background:#F8F3ED;color:#8B4A00;border:1px solid #E4C8A8}
+.prod-badge.ret{background:#F5F2FB;color:#4A2D7A;border:1px solid #C8B8E8}
+.recents-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.recents-hdr h2{font-size:13px;font-weight:700;color:#111}
+@keyframes hub-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+/* Mobile: 2-col hub grid */
+@media(max-width:640px){
+  .prod-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .prod-tile{padding:12px 10px 10px;min-height:85px}
+  .prod-tile-icon{font-size:18px;margin-bottom:5px}
+  .prod-tile-name{font-size:10.5px}
+  .prod-tile-sub{font-size:9px}
+}
 </style>
 </head>
 <body>
@@ -445,7 +482,7 @@ input,select{min-height:38px}
     <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sb-sec">
-        <div class="sb-lbl">New Quote</div>
+        <div class="sb-lbl">GLA Quote</div>
         <div class="qcard fast" onclick="startQuote('fast')">
           <div class="qcard-top"><span class="qcard-icon">&#9889;</span><span class="qcard-title">Fast Quote</span></div>
           <div class="qcard-sub">Aggregate group stats. No census required.</div>
@@ -453,6 +490,9 @@ input,select{min-height:38px}
         <div class="qcard full" onclick="startQuote('full')">
           <div class="qcard-top"><span class="qcard-icon">&#128203;</span><span class="qcard-title">Full Quote (Census)</span></div>
           <div class="qcard-sub">Upload member census (Excel / CSV) for per-member pricing.</div>
+        </div>
+        <div style="margin-top:8px;text-align:center">
+          <span onclick="showHome()" style="font-size:10.5px;color:#641414;cursor:pointer;font-weight:600">&#9776; All Products &rarr;</span>
         </div>
       </div>
 
@@ -484,9 +524,62 @@ input,select{min-height:38px}
 
       <!-- HOME VIEW -->
       <div class="view" id="view-home">
-        <div class="view-hdr">
-          <h1>Recent Quotes</h1>
-          <p>Calculations saved across the engine. Tap any row to view assumptions and export.</p>
+        <!-- ── Product Hub ─────────────────────────────── -->
+        <div class="hub-hdr">
+          <h1>Product Hub</h1>
+          <p>Select a product type to generate a quotation</p>
+        </div>
+        <div class="prod-grid">
+          <div class="prod-tile gla" onclick="startProduct('gla')">
+            <span class="prod-tile-icon">&#128737;</span>
+            <div class="prod-tile-name">Group Life Assurance</div>
+            <div class="prod-tile-sub">GLA with CI, TPD, Funeral &amp; Education riders</div>
+          </div>
+          <div class="prod-tile gfc soon" onclick="startProduct('gfc')">
+            <span class="soon-tag">Coming Soon</span>
+            <span class="prod-tile-icon">&#9904;</span>
+            <div class="prod-tile-name">Group Funeral Cover</div>
+            <div class="prod-tile-sub">Standalone cash funeral benefits</div>
+          </div>
+          <div class="prod-tile gfs soon" onclick="startProduct('gfs')">
+            <span class="soon-tag">Coming Soon</span>
+            <span class="prod-tile-icon">&#128149;</span>
+            <div class="prod-tile-name">Funeral Services</div>
+            <div class="prod-tile-sub">Standard, Executive &amp; VIP service packages</div>
+          </div>
+          <div class="prod-tile gcl soon" onclick="startProduct('gcl')">
+            <span class="soon-tag">Coming Soon</span>
+            <span class="prod-tile-icon">&#128179;</span>
+            <div class="prod-tile-name">Group Credit Life</div>
+            <div class="prod-tile-sub">Loan protection with CI, hospitalisation &amp; funeral riders</div>
+          </div>
+          <div class="prod-tile ret soon" onclick="startProduct('ret')">
+            <span class="soon-tag">Coming Soon</span>
+            <span class="prod-tile-icon">&#128260;</span>
+            <div class="prod-tile-name">Retrenchment &amp; Abscondence</div>
+            <div class="prod-tile-sub">Loan protection — retrenchment + abscondence rider</div>
+          </div>
+        </div>
+
+        <!-- GLA mode picker — slides open on GLA tile click -->
+        <div class="gla-panel" id="gla-mode-panel" style="display:none">
+          <div class="gla-panel-hdr">Group Life Assurance — Select Quote Type</div>
+          <div class="gla-panel-opts">
+            <div class="qcard fast" onclick="startQuote('fast')">
+              <div class="qcard-top"><span class="qcard-icon">&#9889;</span><span class="qcard-title">Fast Quote</span></div>
+              <div class="qcard-sub">Aggregate group stats. No census required.</div>
+            </div>
+            <div class="qcard full" onclick="startQuote('full')">
+              <div class="qcard-top"><span class="qcard-icon">&#128203;</span><span class="qcard-title">Full Quote</span></div>
+              <div class="qcard-sub">Upload member census for per-member pricing.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Recent Quotes ──────────────────────────── -->
+        <div class="recents-hdr">
+          <h2>Recent Quotes</h2>
+          <span class="view-hist-link" onclick="showHistory();setNavActive('nav-hist')">VIEW ALL &rarr;</span>
         </div>
         <div class="qctl">
           <div class="qsrch-wrap">
@@ -502,14 +595,13 @@ input,select{min-height:38px}
         <div class="qt-wrap">
           <table class="qt">
             <thead><tr>
-              <th>Name / Ref</th><th>Type</th><th>Date</th>
+              <th>Name / Ref</th><th>Product</th><th>Date</th>
               <th class="r">Premium (MWK)</th><th class="r">Actions</th>
             </tr></thead>
             <tbody id="home-tbody"></tbody>
           </table>
           <div class="qt-foot">
             <span class="qt-count" id="home-count"></span>
-            <span class="view-hist-link" onclick="showHistory();setNavActive('nav-hist')">VIEW FULL HISTORY &rarr;</span>
           </div>
         </div>
       </div>
@@ -1323,6 +1415,15 @@ function parseDOB(dob,comm){
    STATE
 ═══════════════════════════════════════════════════════ */
 let MODE='fast',STEP=1,MEMBERS=[],RESULTS=null,COMPUTING=false;
+let PRODUCT='gla'; // active product type
+
+const PRODUCT_META={
+  gla:{label:'Group Life Assurance', short:'GLA', color:'#641414', ready:true},
+  gfc:{label:'Group Funeral Cover',  short:'GFC', color:'#1A3A5C', ready:false},
+  gfs:{label:'Funeral Services',     short:'GFS', color:'#1D6A45', ready:false},
+  gcl:{label:'Group Credit Life',    short:'GCL', color:'#8B4A00', ready:false},
+  ret:{label:'Retrenchment & Abs.',  short:'RET', color:'#4A2D7A', ready:false},
+};
 let ADM=(()=>{
   const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
   // A blank/missing gasUrl saved from before the hardcoded default existed
@@ -2349,7 +2450,7 @@ function autoSaveQuote(){
     return k===dedupKey;
   });
   const id=existing>=0?SAVED_QUOTES[existing].id:'gla_'+Date.now();
-  const entry={id,mode:MODE,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,2000):[],savedAt:new Date().toISOString(),autoSaved:true};
+  const entry={id,mode:MODE,product:PRODUCT,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,2000):[],savedAt:new Date().toISOString(),autoSaved:true};
   if(existing>=0){
     SAVED_QUOTES[existing]=entry; // update existing
   } else {
@@ -2370,7 +2471,7 @@ function saveQuote(){
   const dedupKey2=Q.ref?Q.ref.trim():[Q.company,Q.date,Q.mult].filter(Boolean).join('|');
   const existing2=dedupKey2?SAVED_QUOTES.findIndex(s=>{const k=s.q?.ref?s.q.ref.trim():[s.q?.company,s.q?.date,s.q?.mult].filter(Boolean).join('|');return k===dedupKey2;}): -1;
   const finalId=existing2>=0?SAVED_QUOTES[existing2].id:id;
-  const entry={id:finalId,mode:MODE,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,2000):[],savedAt:new Date().toISOString()};
+  const entry={id:finalId,mode:MODE,product:PRODUCT,q:{...Q},results:{...RESULTS},members:MODE==='full'?MEMBERS.slice(0,2000):[],savedAt:new Date().toISOString()};
   if(existing2>=0){SAVED_QUOTES[existing2]=entry;}
   else{SAVED_QUOTES.unshift(entry);if(SAVED_QUOTES.length>30)SAVED_QUOTES=SAVED_QUOTES.slice(0,30);}
   localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
@@ -2455,6 +2556,34 @@ function resetAdmin(){
 /* ═══════════════════════════════════════════════════════
    SCREEN ROUTING
 ═══════════════════════════════════════════════════════ */
+function startProduct(prod){
+  PRODUCT=prod;
+  const meta=PRODUCT_META[prod];
+  if(!meta)return;
+  if(prod==='gla'){
+    // Toggle the mode picker panel
+    const panel=document.getElementById('gla-mode-panel');
+    if(!panel)return;
+    const open=panel.style.display==='none';
+    panel.style.display=open?'':'none';
+    if(open)panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    return;
+  }
+  if(!meta.ready){
+    showToast(meta.label+' quoting is being configured — available in the next release.','info',4000);
+    return;
+  }
+  // Phase 2+: route to product-specific wizard
+}
+
+function getProductBadge(prod,mode){
+  const meta=PRODUCT_META[prod||'gla'];
+  const short=meta?meta.short:'GLA';
+  const cls=prod||'gla';
+  const modeTxt=mode==='full'?' · Full':mode==='fast'?' · Fast':'';
+  return '<span class="prod-badge '+cls+'">'+short+modeTxt+'</span>';
+}
+
 function showHome(){
   showView('view-home');
   renderHomeView();
@@ -2475,6 +2604,10 @@ function showAdmin(){
 }
 
 function startQuote(m){
+  // Close GLA mode picker if open
+  const _p=document.getElementById('gla-mode-panel');
+  if(_p)_p.style.display='none';
+  PRODUCT='gla';
   MODE=m;STEP=1;MEMBERS=[];RESULTS=null;
   // reset form state
   Object.assign(Q,{company:'',city:'',ref:'',prepby:'',date:'',n:'',sal:'',age:'',pf:0.17,sec:'FIN',mult:3,inc_funeral:true,f_scope:'member_and_dependants',f_mBen:3000000,f_nCh:2,f_cPct:0.50,f_nPar:0,f_pPct:0.25,inc_ci:true,ci_cap:'100_pct',inc_dis:true,dis_cap:'follow_gla',inc_ad:true,inc_sp:true,sp_pct:0.50,sp_mar:0.50,inc_adb:false,adb_accel_pct:0.20,inc_edu:false,edu_fee_annual:500000,edu_max_children:3,edu_max_years:6,edu_discount_rate:0.15,edu_pct_with_kids:'auto',edu_avg_kids:'auto',disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,coverAll:true,coverRange:'all'});
@@ -3607,10 +3740,11 @@ function renderHomeQuotes(){
   tbody.innerHTML=shown.map(function(q){
     const r=q.results||{};
     const dt=new Date(q.savedAt).toLocaleDateString('en-GB');
-    const typeBadge='<span class="qtype-badge '+(q.mode==='full'?'full':'fast')+'">'+(q.mode==='full'?'FULL':'FAST')+'</span>';
+    const prod=q.product||'gla';
+    const badge=getProductBadge(prod,q.mode);
     return '<tr class="qt-row" data-id="'+q.id+'">'
       +'<td><div class="qname">'+(q.q?.company||'Unnamed')+'</div><div class="qref">'+(q.q?.ref||'—')+'</div></td>'
-      +'<td>'+typeBadge+'</td>'
+      +'<td>'+badge+'</td>'
       +'<td class="qdate">'+dt+'</td>'
       +'<td class="qprem">'+fmt(r.total_pa)+'</td>'
       +'<td class="qacts"><button class="qt-act-btn" data-pdf="'+q.id+'">PDF</button>'
