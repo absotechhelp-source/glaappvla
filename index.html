@@ -3253,11 +3253,10 @@ function gfcDisplaySummary(){
     +'</div>'
     +'<div class="sum-sec"><div class="sum-lbl">FUNERAL BENEFIT STRUCTURE</div>'+benHTML+'</div>'
     +'<div class="sum-sec"><div class="sum-lbl">PREMIUM SUMMARY</div>'
-    +'<div class="sum-row hi"><span>Annual Premium (MWK)</span><span>'+fmt(Math.round(r.total_pa))+'</span></div>'
-    +'<div class="sum-row"><span>Monthly Equivalent</span><span>'+fmt(Math.round(r.total_monthly))+'</span></div>'
+    +'<div class="sum-row hi"><span>Total Monthly Premium</span><span>'+fmt(Math.round(r.total_monthly))+'</span></div>'
     +'<div class="sum-row"><span>Monthly per Member</span><span>'+fmt(Math.round(r.total_monthly/Q_GFC.n))+'</span></div>'
-    +'<div class="sum-row"><span>Per Member Per Annum</span><span>'+fmt(Math.round(r.total_pa/Q_GFC.n))+'</span></div>'
     +(salBill>0?'<div class="sum-row"><span>As % of Salary Bill</span><span>'+((r.total_pa/salBill)*100).toFixed(3)+'%</span></div>':'')
+    +(Q_GFC.loading&&Q_GFC.loading!==0?'<div class="sum-row" style="border-top:1px dashed #EAE4DA;margin-top:4px;padding-top:4px"><span style="font-size:10.5px;color:#AAA">Int: Premium Adjustment</span><span style="color:'+(Q_GFC.loading>0?'#B44':'#1D6A45')+';font-size:11px">'+(Q_GFC.loading>0?'+':'')+Q_GFC.loading+'% '+(Q_GFC.loading>0?'loading':'discount')+'</span></div>':'')
     +'</div>'
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn primary" style="flex:1" onclick="gfcBuildPDF()">&#8681; Download PDF Quote</button>'
@@ -3353,12 +3352,19 @@ function gfcBuildPDF(){
     doc.addImage(VLA_HEADER_IMG,'JPEG',0,0,W,hdrH);
     y=hdrH+6;
 
-    // Date + Reference
+    // Date + Reference — loading encoded as internal code beside ref, not exposed in table
     const dtStr=new Date(q.date||Date.now()).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const intCode=r.loading_applied&&r.loading_applied!==0
+      ?(r.loading_applied>0?'L+':' D')+Math.abs(r.loading_applied)
+      :null;
     doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...TX);
     doc.text(dtStr,ML,y);
-    doc.setFont('helvetica','bold');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);
     doc.text('Quote Reference: '+q.ref,W-MR,y,{align:'right'});
+    if(intCode){
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(160,140,130);
+      doc.text('[Int: '+intCode+']',W-MR,y+4,{align:'right'});
+    }
     y+=8;
 
     // Client address block
@@ -3429,22 +3435,17 @@ function gfcBuildPDF(){
       y+=4;
     }
 
-    // ── PREMIUM SUMMARY (no component breakdown — totals only) ───
+    // ── PREMIUM SUMMARY — monthly-first, no internal loading row ──
     tblHdr([{label:'PREMIUM SUMMARY',w:CW}]);
     const pCols=[{key:'item',w:CW-55},{key:'val',w:55,r:true}];
     const pRows=[];
-    if(r.loading_applied&&r.loading_applied!==0){
-      pRows.push({item:'Premium Adjustment Applied',val:(r.loading_applied>0?'+':'')+r.loading_applied+'% '+(r.loading_applied>0?'Loading':'Discount')});
-    }
     pRows.push(
-      {item:'TOTAL ANNUAL PREMIUM (GROSS)',    val:'MWK '+f2(r.total_pa)},
-      {item:'Monthly Premium Equivalent',       val:'MWK '+f2(r.total_monthly)},
-      {item:'Monthly Premium per Member',       val:'MWK '+f2(r.total_monthly/q.n)},
-      {item:'Annual Premium per Member',        val:'MWK '+f2(r.total_pa/q.n)}
+      {item:'TOTAL MONTHLY PREMIUM',        val:'MWK '+f2(r.total_monthly),   _bold:true},
+      {item:'Monthly Premium per Member',    val:'MWK '+f2(r.total_monthly/q.n)}
     );
     if(salBill>0)pRows.push({item:'Premium as % of Salary Bill',val:((r.total_pa/salBill)*100).toFixed(3)+'%'});
     pRows.forEach(function(row,i){
-      const isTotal=row.item.startsWith('TOTAL');
+      const isTotal=!!row._bold;
       const bg=isTotal?[235,225,215]:(i%2===0?[255,255,255]:[248,245,241]);
       if(isTotal)doc.setFont('helvetica','bold');
       tblRow(pCols,row,7,bg);
