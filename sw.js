@@ -13,7 +13,7 @@
  *   • External requests (GAS API, CDN libs) → pass-through (never cached here)
  */
 
-const CACHE_VERSION = 'vla-gla-v16';   // ← bump this string on every new deployment
+const CACHE_VERSION = 'vla-gla-v17';   // ← bump this string on every new deployment
 const CACHE_NAME    = CACHE_VERSION;
 
 const PRECACHE_URLS = [
