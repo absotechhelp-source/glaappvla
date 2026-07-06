@@ -3297,7 +3297,21 @@ function gfcSaveToSheet(){
     q:JSON.stringify(Q_GFC), results:JSON.stringify(GFC_RESULTS)
   };
   const url=gasUrl+'?action=saveQuoteGFC&data='+encodeURIComponent(JSON.stringify(payload))+'&token='+encodeURIComponent(token);
-  fetch(url).then(function(){showToast('GFC quote saved to GFC Quotes sheet','success');}).catch(function(){showToast('Save failed — check GAS connection','error');});
+  fetch(url)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.status==='ok'){
+        showToast('GFC quote saved to GFC Quotes sheet ✓','success');
+      } else {
+        const msg=data.message||data.error||'Unknown error';
+        if(msg.includes('Unknown action')){
+          showToast('GAS deployment is outdated — please redeploy the latest VLA_GLA_GAS.gs to enable GFC sheet saving.','error',7000);
+        } else {
+          showToast('GAS error: '+msg,'error');
+        }
+      }
+    })
+    .catch(function(){showToast('Save failed — check GAS connection','error');});
 }
 
 /* ─── GFC PDF BUILDER ─────────────────────────────────────────── */
@@ -3942,23 +3956,19 @@ function renderHistory(){
     const isGasOnly=s.source==='gas';
     let actions;
     if(isGasOnly){
-      // The Sheet only stores a flat summary, not the full quote/member data
-      // these actions need — so GAS-only rows get read-only visibility plus
-      // a note, rather than buttons that would fail or show partial data.
       const ref=(s.q?.ref||'').replace(/'/g,"\\'");
       const canPDF=s.hasFullData&&ref;
       const isAdminUser=CURRENT_USER?.role==='admin';
       const pdfBtn=canPDF
         ?`<button class="qb pdf" data-cdpdf="${s.id}" onclick="crossDevicePDF('${s.id}','${ref}')">&#11015; PDF</button>`
-        :`<span class="qb" style="cursor:default;opacity:.45;font-size:10px" title="Re-save this quote on the originating device to enable cross-device PDF">PDF N/A</span>`;
-      const viewBtn=canPDF
-        ?`<button class="qb" style="background:#641414;color:#fff;border-color:#641414" data-cdview="${s.id}" onclick="crossDeviceView('${s.id}','${ref}')">&#128065; View</button>`
-        :'';
+        :`<span class="qb" style="cursor:default;opacity:.45;font-size:10px" title="Re-deploy GAS and re-save from any device to enable cross-device PDF">PDF N/A</span>`;
+      const viewBtn=`<button class="qb" style="background:#641414;color:#fff;border-color:#641414" onclick="viewGASQuote('${s.id}')">&#128065; View</button>`;
+      const rerunBtn=`<button class="qb" onclick="rerunGASQuote('${s.id}')">&#9654; Re-run</button>`;
       const delBtn=isAdminUser&&ref
         ?`<button class="qb del" onclick="deleteGASOnlyQuote('${s.id}')">&#128465; Delete</button>`
         :'';
       actions=`<div class="qh-row">${viewBtn}${pdfBtn}${delBtn}</div>`
-        +`<div class="qh-row"><span class="qb" style="cursor:default;opacity:.5;font-size:10px">&#127760; Another device</span><button class="qb" onclick="retroSyncOne('${s.id}')">&#128229; Save here</button></div>`;
+        +`<div class="qh-row">${rerunBtn}<button class="qb" onclick="retroSyncOne('${s.id}')">&#128229; Save here</button></div>`;
     } else {
       const btnPdf=`<button class="qb pdf" onclick="historyPDF('${s.id}')">&#11015; Download PDF</button>`;
       const btnView=`<button class="qb" style="background:#641414;color:#fff;border-color:#641414" onclick="openQuotePreview('${s.id}')">&#128065; View</button>`;
@@ -4103,6 +4113,59 @@ function deleteQuote(id){
 }
 
 // Delete a GAS-only (cross-device) quote from the Sheet — admin only
+/* ── GAS-only quote actions: View summary + Re-run in wizard ─────── */
+function viewGASQuote(id){
+  const s=HISTORY_MERGED.find(function(x){return x.id===id;});
+  if(!s){showToast('Quote not found','error');return;}
+  const q=s.q||{},r=s.results||{};
+  const dt=q.date?new Date(q.date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):q.date||'—';
+  const isGFC=(s.product==='gfc');
+  const premLine=isGFC
+    ?'Monthly: MWK '+fmt(r.total_monthly||0)+'  /  Annual: MWK '+fmt(r.total_pa||0)
+    :'Annual: MWK '+fmt(r.totPA||r.total_pa||0)+(r.total_pm?'  /  Monthly: MWK '+fmt(r.total_pm):'');
+  const detail=isGFC
+    ?'<p><strong>Cover Scope:</strong> '+(q.f_scope||'—')+'</p><p><strong>Avg Age:</strong> '+(q.avg_age||'—')+' yrs | <strong>Members:</strong> '+fmt(q.n||0)+'</p>'
+    :'<p><strong>GLA Multiple:</strong> '+(q.mult||'—')+'x Salary | <strong>Members:</strong> '+fmt(q.n||0)+'</p><p><strong>Payroll:</strong> MWK '+fmt(q.sal||0)+'</p>';
+  const html='<div style="padding:16px;font-size:13px;line-height:1.9">'
+    +'<p><strong>Company:</strong> '+(q.company||'—')+'</p>'
+    +'<p><strong>Reference:</strong> '+(q.ref||'—')+'</p>'
+    +'<p><strong>Date:</strong> '+dt+'</p>'
+    +detail
+    +'<p><strong>Premium:</strong> '+premLine+'</p>'
+    +'<p style="font-size:11px;color:#AAA;margin-top:10px;border-top:1px solid #EAE4DA;padding-top:8px">'
+    +'Saved on another device. Click Re-run to reload in the wizard, recalculate, and re-save here.</p>'
+    +'</div>';
+  const modal=document.getElementById('modal-overlay');
+  const mb=document.getElementById('modal-body');
+  if(modal&&mb){
+    mb.innerHTML='<div class="modal-hdr"><h3>Quote Summary</h3></div>'+html;
+    modal.style.display='flex';
+  }
+}
+
+function rerunGASQuote(id){
+  const s=HISTORY_MERGED.find(function(x){return x.id===id;});
+  if(!s){showToast('Quote not found','error');return;}
+  const q=s.q||{};
+  if(s.product==='gfc'){
+    PRODUCT='gfc';GFC_MODE=s.mode||'fast';
+    Q_GFC.company=q.company||'';Q_GFC.date=q.date||'';Q_GFC.ref=q.ref||('gfc_'+Date.now());
+    Q_GFC.n=+q.n||100;Q_GFC.avg_age=+q.avg_age||35;Q_GFC.f_scope=q.f_scope||'member_family';
+    GFC_RESULTS=null;
+    showView('view-wizard-gfc');gfcShowStep(1);
+    showToast('GFC wizard pre-filled — review and recalculate to generate PDF','info',5000);
+    return;
+  }
+  // GLA default
+  PRODUCT='gla';MODE=s.mode||'fast';
+  Q.company=q.company||'';Q.date=q.date||'';Q.ref=q.ref||'';
+  Q.mult=+q.mult||3;Q.n=+q.n||0;Q.sal=+q.sal||0;
+  Q.sec=q.sec||'FIN';Q.prepby=q.prepBy||'';Q.disc=0;Q.load=0;
+  RESULTS=null;MEMBERS=[];
+  showView('view-wizard');showStep(MODE==='full'?2:3);
+  showToast('GLA wizard pre-filled from sheet data — recalculate to generate PDF and re-save','info',5000);
+}
+
 function deleteGASOnlyQuote(id){
   if(CURRENT_USER?.role!=='admin'){showToast('Only administrators can delete quotes.','err');return;}
   const entry=HISTORY_MERGED.find(s=>s.id===id);
