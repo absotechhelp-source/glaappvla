@@ -865,6 +865,15 @@ input,select{min-height:38px}
                     <input id="gfc-npar" type="number" min="0" max="2" value="1">
                     <span class="fld-note">Up to 2 parents &mdash; 25% of member benefit</span></div>
                 </div>
+                <!-- Premium adjustment -->
+                <div class="fld" style="margin-top:12px;padding-top:10px;border-top:1px solid #EAE4DA">
+                  <label>Premium Adjustment <span class="opt-lbl">Optional</span></label>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <input id="gfc-loading" type="number" min="-50" max="100" step="0.5" value="0" style="width:80px">
+                    <span style="font-size:12px;color:#888">% &nbsp;&mdash;&nbsp; positive = loading &nbsp;|&nbsp; negative = discount</span>
+                  </div>
+                  <span class="fld-note">e.g. +10 adds a 10% loading; -5 applies a 5% discount to the net premium</span>
+                </div>
               </div>
               <div id="gfc-s3-err"></div>
             </div>
@@ -2847,6 +2856,7 @@ let Q_GFC={
   f_mBen:1000000,f_scope:'member_family',
   f_nCh:2,f_cPct:50,f_nPar:1,f_pPct:25,
   use_tiers:false,tiers:[],
+  loading:0,  // premium adjustment % (+loading / -discount)
 };
 let GFC_STEP=1, GFC_RESULTS=null, GFC_COMPUTING=false, GFC_MODE='fast';
 const GFC_STEP_TITLES=['Client Details','Membership Details','Benefit Structure','Quote Summary'];
@@ -2919,6 +2929,7 @@ function gfcShowStep(n){
     document.getElementById('gfc-tiered-sec').style.display=Q_GFC.use_tiers?'':'none';
     if(Q_GFC.use_tiers)renderGFCTiers();
     setV('gfc-scope',Q_GFC.f_scope);setV('gfc-nch',Q_GFC.f_nCh);setV('gfc-npar',Q_GFC.f_nPar);
+    setV('gfc-loading',Q_GFC.loading||0);
     gfcScopeChange();
   }
   if(n===4)gfcRenderSummary();
@@ -3086,6 +3097,7 @@ function gfcValidateStep(n){
     Q_GFC.f_nCh=Q_GFC.f_scope==='member_only'?0:Math.min(parseInt(document.getElementById('gfc-nch')?.value)||0,4);
     Q_GFC.f_nPar=Q_GFC.f_scope==='member_family'?Math.min(parseInt(document.getElementById('gfc-npar')?.value)||0,2):0;
     Q_GFC.f_cPct=50; Q_GFC.f_pPct=25;
+    Q_GFC.loading=parseFloat(document.getElementById('gfc-loading')?.value)||0;
     if(Q_GFC.use_tiers){
       if(!Q_GFC.tiers||Q_GFC.tiers.length===0){gfcShowErr('gfc-s3-err','Add at least one tier');return false;}
       const totalN=Q_GFC.tiers.reduce(function(s,t){return s+(+t.n||0);},0);
@@ -3167,6 +3179,18 @@ async function gfcRenderSummary(){
     const resp=await fetch(url);
     const data=await resp.json();
     if(data.error)throw new Error(data.error);
+    // Apply loading/discount to calculated premium
+    if(Q_GFC.loading&&Q_GFC.loading!==0){
+      const factor=1+Q_GFC.loading/100;
+      data.total_pa      *=factor;
+      data.total_net     *=factor;
+      data.total_monthly *=factor;
+      data.commission    *=factor;
+      data.prem_per_member*=factor;
+      if(data.breakdown){Object.keys(data.breakdown).forEach(function(k){data.breakdown[k]*=factor;});}
+      if(data.tier_results){data.tier_results.forEach(function(t){t.tier_net*=factor;t.prem_per_member*=factor;});}
+      data.loading_applied=Q_GFC.loading;
+    }
     GFC_RESULTS=data;
     gfcAutoSave();
     gfcDisplaySummary();
@@ -3225,6 +3249,7 @@ function gfcDisplaySummary(){
     +'<div class="sum-row"><span>Average Age</span><span>'+Q_GFC.avg_age+' years</span></div>'
     +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFC.date+'</span></div>'
     +'<div class="sum-row"><span>Quote Type</span><span>'+(isTiered?'Tiered':'Uniform')+' — '+(GFC_MODE==='full'?'Full Quote':'Fast Quote')+'</span></div>'
+    +(Q_GFC.loading&&Q_GFC.loading!==0?'<div class="sum-row"><span>Premium Adjustment</span><span style="color:'+(Q_GFC.loading>0?'#B44':'#1D6A45')+'">'+(Q_GFC.loading>0?'+':'')+Q_GFC.loading+'% '+(Q_GFC.loading>0?'loading':'discount')+'</span></div>':'')
     +'</div>'
     +'<div class="sum-sec"><div class="sum-lbl">FUNERAL BENEFIT STRUCTURE</div>'+benHTML+'</div>'
     +'<div class="sum-sec"><div class="sum-lbl">PREMIUM SUMMARY</div>'
@@ -3295,6 +3320,18 @@ function gfcBuildPDF(){
       cols.forEach(function(col){doc.text(col.label,cx,y+4.2);cx+=col.w;});
       y+=6;
     }
+    // Sub-header row for column labels (lighter background, smaller font)
+    function colHdr(cols){
+      doc.setFillColor(230,218,208);doc.rect(ML,y,CW,5.5,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(100,50,50);
+      let cx=ML+3;
+      cols.forEach(function(col){
+        if(col.r)doc.text(col.label,ML+CW-3,y+4,{align:'right'});
+        else doc.text(col.label,cx,y+4);
+        cx+=col.w;
+      });
+      y+=5.5;
+    }
     function tblRow(cols,row,rh,bg){
       doc.setFillColor(...bg);doc.rect(ML,y,CW,rh,'F');
       doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
@@ -3355,6 +3392,7 @@ function gfcBuildPDF(){
     if(isTiered){
       tblHdr([{label:'BENEFIT STRUCTURE BY GRADE',w:CW}]);
       const tCols=[{key:'name',w:60,label:'Grade / Tier'},{key:'n',w:30,label:'Members'},{key:'ben',w:CW-90,label:'Member Funeral Benefit (MWK)'}];
+      colHdr(tCols);
       r.tier_results.forEach(function(t,i){
         tblRow(tCols,{name:t.name,n:String(t.n),ben:'MWK '+f2(t.f_mBen)},7,i%2===0?[255,255,255]:[248,245,241]);
       });
@@ -3362,13 +3400,15 @@ function gfcBuildPDF(){
       // Dependant benefits — common to all tiers
       const maxBen=Math.max.apply(null,r.tier_results.map(function(t){return t.f_mBen;}));
       const depRows=[];
-      if(q.f_scope!=='member_only')depRows.push({life:'Spouse',n:'1',ben:'MWK '+f2(maxBen)+' (100% of member benefit)'});
-      if(q.f_scope!=='member_only'&&q.f_nCh>0)depRows.push({life:'Child (per child)',n:String(q.f_nCh),ben:'MWK '+f2(Math.round(maxBen*0.50))+' max (50% of member benefit)'});
-      if(q.f_scope==='member_family'&&q.f_nPar>0)depRows.push({life:'Parent (per parent)',n:String(q.f_nPar),ben:'MWK '+f2(Math.round(maxBen*0.25))+' max (25% of member benefit)'});
+      if(q.f_scope!=='member_only')depRows.push({life:'Spouse',n:'1',ben:'MWK '+f2(maxBen)+' (100% of member)'});
+      if(q.f_scope!=='member_only'&&q.f_nCh>0)depRows.push({life:'Child (per child)',n:String(q.f_nCh),ben:'MWK '+f2(Math.round(maxBen*0.50))+' (50% of member)'});
+      if(q.f_scope==='member_family'&&q.f_nPar>0)depRows.push({life:'Parent (per parent)',n:String(q.f_nPar),ben:'MWK '+f2(Math.round(maxBen*0.25))+' (25% of member)'});
       if(depRows.length>0){
-        tblHdr([{label:'DEPENDANT BENEFITS (PROPORTIONAL TO MEMBER BENEFIT)',w:CW}]);
+        const dCols=[{key:'life',w:80,label:'Life Assured'},{key:'n',w:25,label:'No. Covered'},{key:'ben',w:CW-105,label:'Benefit on Death (MWK)'}];
+        tblHdr([{label:'DEPENDANT BENEFITS',w:CW}]);
+        colHdr(dCols);
         depRows.forEach(function(row,i){
-          tblRow([{key:'life',w:80},{key:'n',w:25},{key:'ben',w:CW-105}],row,7,i%2===0?[255,255,255]:[248,245,241]);
+          tblRow(dCols,row,7,i%2===0?[255,255,255]:[248,245,241]);
         });
         y+=3;
       }
@@ -3376,13 +3416,15 @@ function gfcBuildPDF(){
       const ben=q.f_mBen||(r.f_mBen||1000000);
       const benRows=[
         {life:'Member',n:'1',ben:'MWK '+f2(ben)},
-        q.f_scope!=='member_only'?{life:'Spouse',n:'1',ben:'MWK '+f2(ben)+' (100% of member benefit)'}:null,
-        q.f_scope!=='member_only'&&q.f_nCh>0?{life:'Child (per child)',n:String(q.f_nCh),ben:'MWK '+f2(Math.round(ben*0.50))+' (50% of member benefit)'}:null,
-        q.f_scope==='member_family'&&q.f_nPar>0?{life:'Parent (per parent)',n:String(q.f_nPar),ben:'MWK '+f2(Math.round(ben*0.25))+' (25% of member benefit)'}:null,
+        q.f_scope!=='member_only'?{life:'Spouse',n:'1',ben:'MWK '+f2(ben)+' (100% of member)'}:null,
+        q.f_scope!=='member_only'&&q.f_nCh>0?{life:'Child (per child)',n:String(q.f_nCh),ben:'MWK '+f2(Math.round(ben*0.50))+' (50% of member)'}:null,
+        q.f_scope==='member_family'&&q.f_nPar>0?{life:'Parent (per parent)',n:String(q.f_nPar),ben:'MWK '+f2(Math.round(ben*0.25))+' (25% of member)'}:null,
       ].filter(Boolean);
-      tblHdr([{label:'Life Assured',w:80},{label:'No. Covered',w:25},{label:'Benefit on Death (MWK)',w:CW-105}]);
+      const bCols=[{key:'life',w:80,label:'Life Assured'},{key:'n',w:25,label:'No. Covered'},{key:'ben',w:CW-105,label:'Benefit on Death (MWK)'}];
+      tblHdr([{label:'FUNERAL BENEFIT STRUCTURE',w:CW}]);
+      colHdr(bCols);
       benRows.forEach(function(row,i){
-        tblRow([{key:'life',w:80},{key:'n',w:25},{key:'ben',w:CW-105}],row,7,i%2===0?[255,255,255]:[248,245,241]);
+        tblRow(bCols,row,7,i%2===0?[255,255,255]:[248,245,241]);
       });
       y+=4;
     }
@@ -3390,12 +3432,16 @@ function gfcBuildPDF(){
     // ── PREMIUM SUMMARY (no component breakdown — totals only) ───
     tblHdr([{label:'PREMIUM SUMMARY',w:CW}]);
     const pCols=[{key:'item',w:CW-55},{key:'val',w:55,r:true}];
-    const pRows=[
+    const pRows=[];
+    if(r.loading_applied&&r.loading_applied!==0){
+      pRows.push({item:'Premium Adjustment Applied',val:(r.loading_applied>0?'+':'')+r.loading_applied+'% '+(r.loading_applied>0?'Loading':'Discount')});
+    }
+    pRows.push(
       {item:'TOTAL ANNUAL PREMIUM (GROSS)',    val:'MWK '+f2(r.total_pa)},
       {item:'Monthly Premium Equivalent',       val:'MWK '+f2(r.total_monthly)},
       {item:'Monthly Premium per Member',       val:'MWK '+f2(r.total_monthly/q.n)},
-      {item:'Annual Premium per Member',        val:'MWK '+f2(r.total_pa/q.n)},
-    ];
+      {item:'Annual Premium per Member',        val:'MWK '+f2(r.total_pa/q.n)}
+    );
     if(salBill>0)pRows.push({item:'Premium as % of Salary Bill',val:((r.total_pa/salBill)*100).toFixed(3)+'%'});
     pRows.forEach(function(row,i){
       const isTotal=row.item.startsWith('TOTAL');
