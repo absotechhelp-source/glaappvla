@@ -3365,6 +3365,7 @@ function gfcBuildPDF(){
       doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(160,140,130);
       doc.text('[Int: '+intCode+']',W-MR,y+4,{align:'right'});
     }
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...TX);
     y+=8;
 
     // Client address block
