@@ -3273,11 +3273,13 @@ function gfcAutoSave(){
     const id=Q_GFC.ref||('gfc_'+Date.now());
     const entry={id,product:'gfc',mode:GFC_MODE,
       q:{...Q_GFC},results:{...GFC_RESULTS},
+      members:GFC_MODE==='full'?MEMBERS.slice(0,2000):[],
       savedAt:new Date().toISOString(),autoSaved:true};
-    const stored=JSON.parse(localStorage.getItem('vla_gla_quotes')||'[]');
-    const idx=stored.findIndex(function(x){return x.id===id;});
-    if(idx>=0)stored[idx]=entry; else stored.unshift(entry);
-    localStorage.setItem('vla_gla_quotes',JSON.stringify(stored.slice(0,200)));
+    // Save into the shared SAVED_QUOTES array (same store as GLA)
+    const idx=SAVED_QUOTES.findIndex(function(x){return x.id===id;});
+    if(idx>=0)SAVED_QUOTES[idx]=entry; else SAVED_QUOTES.unshift(entry);
+    if(SAVED_QUOTES.length>200)SAVED_QUOTES=SAVED_QUOTES.slice(0,200);
+    localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
   }catch(e){}
 }
 
@@ -3286,11 +3288,16 @@ function gfcSaveToSheet(){
   const gasUrl=(ADM.gasUrl||'').trim();
   const token=getSessionToken();
   if(!gasUrl||!token){showToast('Save requires a GAS connection and active session','error');return;}
-  const payload={id:Q_GFC.ref,product:'gfc',mode:'fast',
-    company:Q_GFC.company,date:Q_GFC.date,n:Q_GFC.n,
-    total_pa:GFC_RESULTS.total_pa,q:JSON.stringify(Q_GFC),results:JSON.stringify(GFC_RESULTS)};
-  const url=gasUrl+'?action=saveQuote&data='+encodeURIComponent(JSON.stringify(payload))+'&token='+encodeURIComponent(token);
-  fetch(url).then(function(){showToast('Quote saved to Google Sheet','success');}).catch(function(){showToast('Save failed — check GAS connection','error');});
+  const payload={
+    id:Q_GFC.ref, product:'gfc', mode:GFC_MODE,
+    company:Q_GFC.company, date:Q_GFC.date, n:Q_GFC.n,
+    avg_age:Q_GFC.avg_age, f_scope:Q_GFC.f_scope,
+    total_monthly:GFC_RESULTS.total_monthly, total_pa:GFC_RESULTS.total_pa,
+    tiers:Q_GFC.use_tiers?Q_GFC.tiers:[],
+    q:JSON.stringify(Q_GFC), results:JSON.stringify(GFC_RESULTS)
+  };
+  const url=gasUrl+'?action=saveQuoteGFC&data='+encodeURIComponent(JSON.stringify(payload))+'&token='+encodeURIComponent(token);
+  fetch(url).then(function(){showToast('GFC quote saved to GFC Quotes sheet','success');}).catch(function(){showToast('Save failed — check GAS connection','error');});
 }
 
 /* ─── GFC PDF BUILDER ─────────────────────────────────────────── */
@@ -3963,12 +3970,17 @@ function renderHistory(){
         : '';
       actions='<div class="qh-row">'+btnView+btnPdf+'</div><div class="qh-row">'+btnWA+btnEmail+btnRevise+(btnAdmin?btnAdmin:'')+'</div>';
     }
+    const isGFC=s.product==='gfc';
+    const annPrem=isGFC?(r.total_pa||0):(r.totPA||r.total_pa||0);
+    const moPrem=isGFC?(r.total_monthly||0):(r.total_pm||0);
     return '<div class="qh-card">'
       +'<div class="qh-info">'
       +'<div class="qh-co">'+( s.q?.company||'Unnamed Scheme' )+'</div>'
-      +'<div class="qh-meta">'+( s.q?.ref||'No ref' )+' · '+( s.q?.mult||'?' )+'&times; Salary · '+fmt(nMem)+' members'+(sec?' · '+sec:'')+'</div>'
-      +'<div class="qh-prem">MWK '+fmt(r.total_pa)+' p.a.'+(r.total_pm?'  /  MWK '+fmt(r.total_pm)+' pm':'')+'</div>'
-      +'<div class="qh-ts">'+modeLabel+(s.autoSaved?' · Auto-saved':'')+' · '+dt+(payroll?' · Payroll: MWK '+fmt(payroll):'')+'</div>'
+      +(isGFC
+        ?'<div class="qh-meta">'+( s.q?.ref||'No ref' )+' · GFC · '+(s.q?.use_tiers?'Tiered':'Uniform')+' · '+fmt(s.q?.n||0)+' members</div>'
+        :'<div class="qh-meta">'+( s.q?.ref||'No ref' )+' · '+( s.q?.mult||'?' )+'&times; Salary · '+fmt(nMem)+' members'+(sec?' · '+sec:'')+'</div>')
+      +'<div class="qh-prem">MWK '+fmt(moPrem)+' pm'+(annPrem?' / MWK '+fmt(annPrem)+' p.a.':'')+'</div>'
+      +'<div class="qh-ts">'+modeLabel+(s.autoSaved?' · Auto-saved':'')+' · '+dt+((!isGFC&&payroll)?' · Payroll: MWK '+fmt(payroll):'')+'</div>'
       +'</div>'
       +'<div class="qh-acts">'
       +actions
@@ -3978,17 +3990,23 @@ function renderHistory(){
 }
 
 function historyPDF(id){
-  const sq=SAVED_QUOTES.find(s=>s.id===id);
-  if(!sq){alert('Quote not found.');return;}
-  // Temporarily swap global state
+  const sq=SAVED_QUOTES.find(s=>s.id===id)||HISTORY_MERGED.find(s=>s.id===id);
+  if(!sq){showToast('Quote not found','error');return;}
+  // Route by product type
+  if(sq.product==='gfc'){
+    // Restore GFC state and generate GFC PDF
+    const saveGFC={...Q_GFC}, saveGFCR=GFC_RESULTS, saveGFCM=GFC_MODE;
+    Object.assign(Q_GFC,sq.q);
+    GFC_RESULTS=sq.results;
+    GFC_MODE=sq.mode||'fast';
+    try{gfcBuildPDF();}catch(e){showToast('PDF failed: '+e.message,'error');}
+    Object.assign(Q_GFC,saveGFC);GFC_RESULTS=saveGFCR;GFC_MODE=saveGFCM;
+    return;
+  }
+  // GLA (default)
   const saveQ={...Q},saveR=RESULTS,saveMode=MODE,saveMembers=[...MEMBERS];
-  Object.assign(Q,sq.q);
-  RESULTS=sq.results;
-  MODE=sq.mode;
-  MEMBERS=sq.members||[];
-  try{generatePDF();}
-  catch(e){alert('PDF generation failed: '+e.message);}
-  // Restore state
+  Object.assign(Q,sq.q);RESULTS=sq.results;MODE=sq.mode;MEMBERS=sq.members||[];
+  try{generatePDF();}catch(e){showToast('PDF failed: '+e.message,'error');}
   Object.assign(Q,saveQ);RESULTS=saveR;MODE=saveMode;MEMBERS=saveMembers;
 }
 
@@ -4036,9 +4054,19 @@ function reviseQuote(id){
 }
 
 function viewQuoteSummary(id){
-  const sq=SAVED_QUOTES.find(s=>s.id===id);
-  if(!sq){alert('Quote not found.');return;}
-  // Load quote and jump to summary step
+  const sq=SAVED_QUOTES.find(s=>s.id===id)||HISTORY_MERGED.find(s=>s.id===id);
+  if(!sq){showToast('Quote not found','error');return;}
+  if(sq.product==='gfc'){
+    // Restore GFC state and show GFC summary step
+    PRODUCT='gfc';GFC_MODE=sq.mode||'fast';
+    Object.assign(Q_GFC,sq.q);
+    GFC_RESULTS=sq.results;
+    MEMBERS=sq.members||[];
+    showView('view-wizard-gfc');
+    gfcShowStep(4);
+    return;
+  }
+  // GLA (default)
   MODE=sq.mode;
   Object.assign(Q,sq.q);
   MEMBERS=sq.members||[];
@@ -4716,11 +4744,16 @@ function renderHomeQuotes(){
     const dt=new Date(q.savedAt).toLocaleDateString('en-GB');
     const prod=q.product||'gla';
     const badge=getProductBadge(prod,q.mode);
+    // Premium: GFC shows monthly (total_monthly), GLA shows annual (totPA or total_pa)
+    const qr=q.results||{};
+    const premDisplay=prod==='gfc'
+      ?fmt(Math.round(qr.total_monthly||0))+' /mo'
+      :fmt(Math.round(qr.totPA||qr.total_pa||0));
     return '<tr class="qt-row" data-id="'+q.id+'">'
       +'<td><div class="qname">'+(q.q?.company||'Unnamed')+'</div><div class="qref">'+(q.q?.ref||'—')+'</div></td>'
       +'<td>'+badge+'</td>'
       +'<td class="qdate">'+dt+'</td>'
-      +'<td class="qprem">'+fmt(r.total_pa)+'</td>'
+      +'<td class="qprem">'+premDisplay+'</td>'
       +'<td class="qacts"><button class="qt-act-btn" data-pdf="'+q.id+'">PDF</button>'
         +'<button class="qt-act-btn" data-edit="'+q.id+'">Edit</button></td>'
       +'</tr>';
