@@ -401,38 +401,66 @@ input,select{min-height:38px}
 .hub-hdr{margin-bottom:14px}
 .hub-hdr h1{font-size:19px;font-weight:700;color:#111;margin-bottom:2px}
 .hub-hdr p{font-size:12px;color:#999}
-.prod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
-.prod-tile{background:#fff;border:1.5px solid #E4DDD2;border-radius:10px;padding:14px 12px 12px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:95px}
-.prod-tile:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.prod-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:20px}
+.prod-tile{background:#fff;border:1.5px solid #E4DDD2;border-top:3px solid #641414;border-radius:10px;padding:16px 14px 13px;cursor:pointer;transition:all .18s;position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:100px}
+.prod-tile:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(100,20,20,.12);border-color:#641414}
 .prod-tile:active{transform:scale(.97)}
-.prod-tile-icon{font-size:20px;margin-bottom:6px;line-height:1}
-.prod-tile-name{font-size:11px;font-weight:700;color:#111;margin-bottom:2px;line-height:1.25}
-.prod-tile-sub{font-size:9.5px;color:#AAA;line-height:1.4;flex:1}
-.prod-tile.gla{border-left:3.5px solid #641414}.prod-tile.gla:hover{background:#FBF7F6}
-.prod-tile.gfc{border-left:3.5px solid #1A3A5C}.prod-tile.gfc:hover{background:#F4F7FB}
-.prod-tile.gfs{border-left:3.5px solid #1D6A45}.prod-tile.gfs:hover{background:#F3F8F5}
-.prod-tile.gcl{border-left:3.5px solid #8B4A00}.prod-tile.gcl:hover{background:#FBF6F0}
-.prod-tile.ret{border-left:3.5px solid #4A2D7A}.prod-tile.ret:hover{background:#F7F4FC}
-.soon-tag{position:absolute;top:6px;right:7px;font-size:7px;font-weight:700;padding:2px 5px;border-radius:3px;background:#F0EAE0;color:#C0A87A;text-transform:uppercase;letter-spacing:.4px}
-.gla-panel{background:#FBF7F6;border:1.5px solid #E8CECE;border-radius:10px;padding:14px;margin-bottom:18px;animation:hub-in .15s ease}
-.gla-panel-hdr{font-size:10.5px;font-weight:700;color:#641414;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
-.gla-panel-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prod-tile-icon{display:block;margin-bottom:9px;line-height:1}.prod-tile-icon svg{display:block}
+.prod-tile-name{font-size:12px;font-weight:700;color:#111;margin-bottom:3px;line-height:1.25}
+.prod-tile-sub{font-size:10px;color:#AAA;line-height:1.4;flex:1}
+.soon-tag{position:absolute;top:7px;right:8px;font-size:7px;font-weight:700;padding:2px 6px;border-radius:3px;background:#F5EFE5;color:#B89A6A;text-transform:uppercase;letter-spacing:.5px}
+/* Product badges on quote rows */
 .prod-badge{display:inline-block;font-size:7.5px;font-weight:700;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px;vertical-align:middle}
-.prod-badge.gla{background:#F7EDED;color:#641414;border:1px solid #EDCECE}
-.prod-badge.gfc{background:#EDF2F8;color:#1A3A5C;border:1px solid #C4D5E9}
-.prod-badge.gfs{background:#EEF7F2;color:#1D6A45;border:1px solid #BBD9C8}
-.prod-badge.gcl{background:#F8F3ED;color:#8B4A00;border:1px solid #E4C8A8}
-.prod-badge.ret{background:#F5F2FB;color:#4A2D7A;border:1px solid #C8B8E8}
+.prod-badge.gla,.prod-badge.gfc,.prod-badge.gfs,.prod-badge.lp,.prod-badge.gcl,.prod-badge.ret{background:#F7EDED;color:#641414;border:1px solid #EDCECE}
+/* Recents sub-header */
 .recents-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .recents-hdr h2{font-size:13px;font-weight:700;color:#111}
+/* ── BOTTOM SHEET ──────────────────────────────────────── */
+.bs-overlay{position:fixed;inset:0;background:rgba(50,10,10,.5);z-index:200;opacity:0;transition:opacity .25s;pointer-events:none}
+.bs-overlay.open{opacity:1;pointer-events:all}
+.bs-sheet{position:fixed;bottom:0;left:0;right:0;background:#fff;border-radius:18px 18px 0 0;padding:0 20px 36px;z-index:201;transform:translateY(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:88vh;overflow-y:auto}
+.bs-sheet.open{transform:translateY(0)}
+.bs-drag-wrap{padding:12px 0 4px;text-align:center;cursor:pointer}
+.bs-drag{width:36px;height:4px;background:#E0D8D0;border-radius:2px;display:inline-block}
+.bs-prod-hdr{display:flex;align-items:center;gap:13px;margin-bottom:18px;padding-bottom:15px;border-bottom:1px solid #F0EAE2}
+.bs-prod-icon-wrap{width:46px;height:46px;border-radius:10px;background:#F7EDED;border:1.5px solid #EDCECE;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bs-prod-title{font-size:16px;font-weight:700;color:#111;margin-bottom:3px}
+.bs-prod-desc{font-size:11.5px;color:#999;line-height:1.4}
+.bs-section-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#C0B0A0;margin:0 0 8px}
+.bs-opts{display:grid;gap:10px}
+.bs-opt{display:flex;align-items:center;gap:13px;padding:14px 15px;background:#FDFAF7;border:1.5px solid #EDE5DA;border-radius:10px;cursor:pointer;transition:all .18s;text-align:left}
+.bs-opt:hover{background:#F8F0E8;border-color:#641414}
+.bs-opt:active{transform:scale(.98)}
+.bs-opt.soon{opacity:.65;cursor:default}
+.bs-opt-icon{width:40px;height:40px;background:#641414;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bs-opt-title{font-size:13px;font-weight:700;color:#111;margin-bottom:2px}
+.bs-opt-sub{font-size:10.5px;color:#999;line-height:1.4}
+.bs-opt-arr{color:#C0A898;font-size:18px;flex-shrink:0;margin-left:auto}
 @keyframes hub-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-/* Mobile: 2-col hub grid */
+/* ── PRODUCT SUMMARY LAYOUT (GFC, GFS, GCL, RET) ────────── */
+.sum-sec{background:#fff;border:1px solid #EAE4DA;border-radius:6px;padding:12px 14px;margin-bottom:10px}
+.sum-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#641414;margin-bottom:8px}
+.sum-row{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid #F5F0EB;gap:12px}
+.sum-row:last-of-type{border-bottom:none}
+.sum-row span:first-child{font-size:11.5px;color:#888;flex-shrink:0}
+.sum-row span:last-child{font-size:12px;font-weight:600;color:#111;text-align:right}
+.sum-row.hi span:first-child{color:#641414;font-weight:600}
+.sum-row.hi span:last-child{color:#641414;font-size:13px;font-weight:700}
+.sum-tier-row{display:grid;grid-template-columns:1fr 60px 80px 90px;gap:8px;padding:5px 0;border-bottom:1px solid #F5F0EB;font-size:11.5px}
+.sum-tier-row.hdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#AAA;padding-bottom:6px}
+.sum-tier-row span:not(:first-child){text-align:right}
+/* Tier builder in step 3 */
+.tier-card{border:1px solid #EAE4DA;border-radius:8px;padding:12px;margin-bottom:8px;background:#FDFAF7}
+.tier-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tier-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tier-card-grid label{font-size:10.5px;color:#888;display:block;margin-bottom:3px}
+.tier-remove{background:none;border:1px solid #EDCECE;color:#B44;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;margin-left:auto}
+.opt-lbl{font-size:9.5px;color:#AAA;font-weight:400;margin-left:4px}
+/* Mobile adjustments */
 @media(max-width:640px){
-  .prod-grid{grid-template-columns:1fr 1fr;gap:8px}
-  .prod-tile{padding:12px 10px 10px;min-height:85px}
-  .prod-tile-icon{font-size:18px;margin-bottom:5px}
-  .prod-tile-name{font-size:10.5px}
-  .prod-tile-sub{font-size:9px}
+  .prod-tile{padding:13px 12px 11px;min-height:90px}
+  .prod-tile-name{font-size:11.5px}
+  .prod-tile-sub{font-size:9.5px}
 }
 </style>
 </head>
@@ -530,49 +558,27 @@ input,select{min-height:38px}
           <p>Select a product type to generate a quotation</p>
         </div>
         <div class="prod-grid">
-          <div class="prod-tile gla" onclick="startProduct('gla')">
-            <span class="prod-tile-icon">&#128737;</span>
+          <div class="prod-tile gla" onclick="openProductSheet('gla')">
+            <span class="prod-tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2L4 6.5V12c0 4.97 3.36 9.62 8 11.11C16.64 21.62 20 16.97 20 12V6.5L12 2z" fill="#641414" fill-opacity=".12" stroke="#641414" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#641414" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
             <div class="prod-tile-name">Group Life Assurance</div>
             <div class="prod-tile-sub">GLA with CI, TPD, Funeral &amp; Education riders</div>
           </div>
-          <div class="prod-tile gfc soon" onclick="startProduct('gfc')">
-            <span class="soon-tag">Coming Soon</span>
-            <span class="prod-tile-icon">&#9904;</span>
+          <div class="prod-tile gfc" onclick="openProductSheet('gfc')">
+            <span class="prod-tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3C7 3 3 7 3 12h18C21 7 17 3 12 3z" fill="#641414" fill-opacity=".12" stroke="#641414" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="12" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/><path d="M12 12v6.5a2.5 2.5 0 005 0" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/></svg></span>
             <div class="prod-tile-name">Group Funeral Cover</div>
             <div class="prod-tile-sub">Standalone cash funeral benefits</div>
           </div>
-          <div class="prod-tile gfs soon" onclick="startProduct('gfs')">
+          <div class="prod-tile gfs" onclick="openProductSheet('gfs')">
             <span class="soon-tag">Coming Soon</span>
-            <span class="prod-tile-icon">&#128149;</span>
+            <span class="prod-tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 13c0 0-4.5-2-4.5-5.5a4.5 4.5 0 019 0C16.5 11 12 13 12 13z" fill="#641414" fill-opacity=".12" stroke="#641414" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 13v7" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/><path d="M9.5 17c0 0 2.5-.5 2.5-3" stroke="#641414" stroke-width="1.5" stroke-linecap="round"/></svg></span>
             <div class="prod-tile-name">Funeral Services</div>
             <div class="prod-tile-sub">Standard, Executive &amp; VIP service packages</div>
           </div>
-          <div class="prod-tile gcl soon" onclick="startProduct('gcl')">
+          <div class="prod-tile lp" onclick="openProductSheet('lp')">
             <span class="soon-tag">Coming Soon</span>
-            <span class="prod-tile-icon">&#128179;</span>
-            <div class="prod-tile-name">Group Credit Life</div>
-            <div class="prod-tile-sub">Loan protection with CI, hospitalisation &amp; funeral riders</div>
-          </div>
-          <div class="prod-tile ret soon" onclick="startProduct('ret')">
-            <span class="soon-tag">Coming Soon</span>
-            <span class="prod-tile-icon">&#128260;</span>
-            <div class="prod-tile-name">Retrenchment &amp; Abscondence</div>
-            <div class="prod-tile-sub">Loan protection — retrenchment + abscondence rider</div>
-          </div>
-        </div>
-
-        <!-- GLA mode picker — slides open on GLA tile click -->
-        <div class="gla-panel" id="gla-mode-panel" style="display:none">
-          <div class="gla-panel-hdr">Group Life Assurance — Select Quote Type</div>
-          <div class="gla-panel-opts">
-            <div class="qcard fast" onclick="startQuote('fast')">
-              <div class="qcard-top"><span class="qcard-icon">&#9889;</span><span class="qcard-title">Fast Quote</span></div>
-              <div class="qcard-sub">Aggregate group stats. No census required.</div>
-            </div>
-            <div class="qcard full" onclick="startQuote('full')">
-              <div class="qcard-top"><span class="qcard-icon">&#128203;</span><span class="qcard-title">Full Quote</span></div>
-              <div class="qcard-sub">Upload member census for per-member pricing.</div>
-            </div>
+            <span class="prod-tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" fill="#641414" fill-opacity=".12" stroke="#641414" stroke-width="1.75"/><path d="M8 11V7a4 4 0 018 0v4" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="16" r="1.5" fill="#641414"/></svg></span>
+            <div class="prod-tile-name">Loan Protection</div>
+            <div class="prod-tile-sub">Credit Life and Retrenchment &amp; Abscondence</div>
           </div>
         </div>
 
@@ -727,6 +733,161 @@ input,select{min-height:38px}
           <button class="btn primary" id="nav-next" onclick="navNext()">Next &rarr;</button>
         </div>
       </div><!-- view-wizard -->
+
+      <!-- ═══════════════════════════════════════════════
+           GFC — GROUP FUNERAL COVER WIZARD
+      ════════════════════════════════════════════════ -->
+      <div class="view" id="view-wizard-gfc">
+        <div class="wiz-back" onclick="showHome()">&#8592; Back to quotes</div>
+        <!-- Progress bar — 4 steps -->
+        <div class="pbar" id="gfc-pbar">
+          <div class="pi on" id="gfc-pi1"><div class="pdot">1</div><span class="plbl">Client</span></div>
+          <div class="pline"></div>
+          <div class="pi" id="gfc-pi2"><div class="pdot">2</div><span class="plbl">Members</span></div>
+          <div class="pline"></div>
+          <div class="pi" id="gfc-pi3"><div class="pdot">3</div><span class="plbl">Benefits</span></div>
+          <div class="pline"></div>
+          <div class="pi" id="gfc-pi4"><div class="pdot">4</div><span class="plbl">Summary</span></div>
+        </div>
+        <div class="step-card">
+          <div class="step-hdr">
+            <h2 id="gfc-step-title">Client Details</h2>
+            <span class="mbadge" id="gfc-mode-badge">Fast Quote</span>
+          </div>
+          <div class="step-body">
+
+            <!-- GFC STEP 1 — Client Details -->
+            <div class="step on" id="gfc-s1">
+              <div class="fg">
+                <div class="fld"><label>Company / Employer Name *</label>
+                  <input id="gfc-company" placeholder="e.g. Nacala Logistics Ltd"></div>
+                <div class="fld"><label>Physical Address</label>
+                  <input id="gfc-address" placeholder="e.g. Chipembere Highway, Blantyre"></div>
+                <div class="fld"><label>City</label>
+                  <input id="gfc-city" placeholder="Blantyre" value="Blantyre"></div>
+                <div class="fld"><label>Commencement Date *</label>
+                  <input id="gfc-date" type="date"></div>
+                <div class="fld"><label>Quote Reference</label>
+                  <input id="gfc-ref" placeholder="Auto-generated if blank"></div>
+              </div>
+              <div id="gfc-s1-err"></div>
+            </div>
+
+            <!-- GFC STEP 2 FAST — Aggregate Membership -->
+            <div class="step" id="gfc-s2-fast">
+              <div class="fg">
+                <div class="fld"><label>Number of Members *</label>
+                  <input id="gfc-n" type="number" min="1" max="50000" placeholder="e.g. 150"></div>
+                <div class="fld"><label>Average Age (nearest birthday) *</label>
+                  <input id="gfc-age" type="number" min="16" max="75" placeholder="e.g. 35"></div>
+                <div class="fld s2"><label>% Female Members &mdash; <strong id="gfc-pf-disp">40%</strong></label>
+                  <input id="gfc-pf" type="range" min="0" max="100" value="40"
+                    oninput="document.getElementById('gfc-pf-disp').textContent=this.value+'%'"></div>
+                <div class="fld"><label>Total Annual Salary Bill (MWK) <span class="opt-lbl">Optional</span></label>
+                  <input id="gfc-sal-bill" type="number" min="0" step="1000000" placeholder="e.g. 120,000,000">
+                  <span class="fld-note">Used to express premium as % of payroll in the quote</span></div>
+              </div>
+              <div id="gfc-s2-err"></div>
+            </div>
+
+            <!-- GFC STEP 2 FULL — Member Census -->
+            <div class="step" id="gfc-s2-full">
+              <div class="mdb-bar">
+                <input class="mdb-srch" type="text" id="gfc-mdb-search" placeholder="Search members&hellip;" oninput="renderGFCMDB()">
+                <button class="btn primary" onclick="selectAllMDB();renderGFCMDB()">Select All</button>
+                <button class="btn" onclick="clearMDB();renderGFCMDB()">Clear</button>
+                <button class="btn" onclick="document.getElementById('gfc-mdb-file-in').click()">&#11014; Import</button>
+                <input type="file" id="gfc-mdb-file-in" accept=".xlsx,.xls,.csv" style="display:none"
+                  onchange="importMDBFile(this.files[0]);setTimeout(renderGFCMDB,800)">
+                <button class="btn" onclick="openAddMDB()">+ Member</button>
+              </div>
+              <div class="mdb-wrap" style="max-height:340px">
+                <table class="mdb-t">
+                  <thead><tr>
+                    <th style="width:28px"><input type="checkbox" id="gfc-mdb-all" onchange="toggleAllMDB(this.checked);renderGFCMDB()"></th>
+                    <th>#</th><th>Name</th><th>Sex</th><th>Age</th>
+                    <th class="r">Salary (MWK)</th><th></th>
+                  </tr></thead>
+                  <tbody id="gfc-mdb-tbody"></tbody>
+                </table>
+              </div>
+              <div id="gfc-mdb-info" class="mdb-info">No members yet — import a census file or add members individually</div>
+              <div id="gfc-s2f-err"></div>
+            </div>
+
+            <!-- GFC STEP 3 — Benefit Structure -->
+            <div class="step" id="gfc-s3">
+              <div class="fg">
+                <!-- Cover structure toggle -->
+                <div class="fld">
+                  <label>Cover Structure</label>
+                  <select id="gfc-use-tiers" onchange="gfcToggleTiers()">
+                    <option value="0">Uniform &mdash; same benefit for all members</option>
+                    <option value="1">Tiered &mdash; different benefits by employee grade</option>
+                  </select>
+                </div>
+                <!-- UNIFORM MODE -->
+                <div id="gfc-uniform-sec">
+                  <div class="fld"><label>Member Funeral Benefit (MWK) *</label>
+                    <select id="gfc-ben" onchange="gfcBenChange()">
+                      <option value="500000">MWK 500,000</option>
+                      <option value="750000">MWK 750,000</option>
+                      <option value="1000000" selected>MWK 1,000,000</option>
+                      <option value="1500000">MWK 1,500,000</option>
+                      <option value="2000000">MWK 2,000,000</option>
+                      <option value="3000000">MWK 3,000,000</option>
+                      <option value="custom">Custom amount&hellip;</option>
+                    </select></div>
+                  <div class="fld" id="gfc-ben-custom-wrap" style="display:none">
+                    <label>Custom Benefit Amount (MWK)</label>
+                    <input id="gfc-ben-custom" type="number" min="100000" max="10000000" step="100000" placeholder="e.g. 1250000"></div>
+                </div>
+                <!-- TIERED MODE -->
+                <div id="gfc-tiered-sec" style="display:none">
+                  <div id="gfc-tiers-list"></div>
+                  <button class="btn" onclick="gfcAddTier()" style="width:100%;margin:4px 0">+ Add Tier</button>
+                  <div style="font-size:11px;color:#888;padding:3px 0">Total members across all tiers: <strong id="gfc-tiers-total">0</strong></div>
+                </div>
+                <!-- Scope + dependants — applies to all tiers -->
+                <div class="fld" style="margin-top:10px"><label>Cover Scope *</label>
+                  <select id="gfc-scope" onchange="gfcScopeChange()">
+                    <option value="member_only">Member only</option>
+                    <option value="member_spouse">Member + Spouse</option>
+                    <option value="member_family" selected>Full Family (Member + Spouse + Children + Parents)</option>
+                  </select></div>
+                <div id="gfc-ch-wrap">
+                  <div class="fld"><label>Children Covered per Member</label>
+                    <input id="gfc-nch" type="number" min="0" max="4" value="2">
+                    <span class="fld-note">Up to 4 children &mdash; 50% of member benefit</span></div>
+                </div>
+                <div id="gfc-par-wrap">
+                  <div class="fld"><label>Parents Covered per Member</label>
+                    <input id="gfc-npar" type="number" min="0" max="2" value="1">
+                    <span class="fld-note">Up to 2 parents &mdash; 25% of member benefit</span></div>
+                </div>
+              </div>
+              <div id="gfc-s3-err"></div>
+            </div>
+
+            <!-- GFC STEP 4 — Summary -->
+            <div class="step" id="gfc-s4">
+              <div id="gfc-summary-content">
+                <div style="text-align:center;padding:40px 20px">
+                  <div class="spin" style="margin:0 auto 14px"></div>
+                  <p style="color:#888;font-size:14px">Calculating your premium&hellip;</p>
+                  <p style="color:#AAA;font-size:12px">Connecting to GAS pricing engine</p>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- step-body -->
+        </div><!-- step-card -->
+        <div class="step-nav">
+          <button class="btn" id="gfc-nav-back" onclick="navBackGFC()">&#8592; Back</button>
+          <div class="sp"></div>
+          <button class="btn primary" id="gfc-nav-next" onclick="navNextGFC()">Next &rarr;</button>
+        </div>
+      </div><!-- view-wizard-gfc -->
 
       <!-- HISTORY VIEW -->
       <div class="view" id="view-history">
@@ -1418,11 +1579,12 @@ let MODE='fast',STEP=1,MEMBERS=[],RESULTS=null,COMPUTING=false;
 let PRODUCT='gla'; // active product type
 
 const PRODUCT_META={
-  gla:{label:'Group Life Assurance', short:'GLA', color:'#641414', ready:true},
-  gfc:{label:'Group Funeral Cover',  short:'GFC', color:'#1A3A5C', ready:false},
-  gfs:{label:'Funeral Services',     short:'GFS', color:'#1D6A45', ready:false},
-  gcl:{label:'Group Credit Life',    short:'GCL', color:'#8B4A00', ready:false},
-  ret:{label:'Retrenchment & Abs.',  short:'RET', color:'#4A2D7A', ready:false},
+  gla:{label:'Group Life Assurance', short:'GLA', desc:'GLA with CI, TPD, Funeral & Education riders', ready:true},
+  gfc:{label:'Group Funeral Cover',  short:'GFC', desc:'Standalone cash funeral benefits for groups', ready:false},
+  gfs:{label:'Funeral Services',     short:'GFS', desc:'Standard, Executive & VIP service packages', ready:false},
+  lp: {label:'Loan Protection',      short:'LP',  desc:'Credit Life and Retrenchment & Abscondence', ready:false},
+  gcl:{label:'Credit Life',          short:'GCL', desc:'Loan protection with CI, hospitalisation & funeral riders', ready:false},
+  ret:{label:'Retrenchment & Abscondence', short:'RET', desc:'Loan protection — once-off or monthly premium', ready:false},
 };
 let ADM=(()=>{
   const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
@@ -2497,20 +2659,45 @@ function renderSavedList(){
    ADMIN SETTINGS
 ═══════════════════════════════════════════════════════ */
 const ADM_META=[
-  // ── Actuarial Engine Parameters — sent to GAS on every calc (admin only) ─
-  ['expDiv',         'Expense Loading Divisor (GLA)',       0.50, 1.50, 0.01,   'Core GLA rate divisor: loaded_rate = net_rate ÷ expDiv. Applies to GLA and Spouse GLA only. Spec default: 1.20'],
-  ['ciLoad',         'CI Rate Loading Stripper',            0.10, 0.40, 0.01,   'Embedded CI table loading stripped before pricing: net = table / (1 + ciLoad). Default: 0.20'],
-  ['disFac',         'Disability Rate Factor',              0.20, 0.65, 0.01,   'TPD premium as an exact fraction of the blended net CI rate. Default: 0.40'],
-  ['adFac',          'Accidental Death Factor',             0.05, 0.25, 0.01,   'Standard ADB as a flat % addition over the final loaded GLA premium. Default: 0.10'],
-  ['spSetback',      'Spouse Age Setback (years)',          0,    6,    1,      'Years subtracted from member age for spouse rate proxy. Floor: age 16. Default: 3'],
-  ['parentOffset',   'Parent Age Offset (years)',           15,   25,   1,      'Years added to member age for parent funeral rate proxy. Ceiling: age 80. Default: 20'],
-  ['childMort',      'Child Mortality Rate',                0.001,0.010,0.001,  'Flat annual risk coefficient per unit of child sum assured (funeral rider). Default: 0.003'],
-  ['ciMaxAge',       'CI / TPD Max Cover Age',              60,   80,   1,      'Members above this age excluded from CI and TPD riders. Default: 75'],
-  ['edu_discount_rate','Education Discount Rate',           0.05, 0.30, 0.01,   'Annuity-due discount rate for Education Cover present value computation. Default: 0.15'],
-  // ── Product / UI Parameters ─────────────────────────────────────────────
-  ['validDays',      'Quote Validity Period (days)',        14,   90,   1,      'Days a PDF quote remains valid from date of issue — shown on the quote footer. Default: 30'],
-  ['funeralMin',     'Min Funeral Benefit (MWK)',           500000, 2000000,  500000, 'Lower bound of the funeral benefit selector in the quoting wizard. Default: 500,000'],
-  ['funeralMax',     'Max Funeral Benefit (MWK)',           3000000,15000000, 500000, 'Upper bound of the funeral benefit selector in the quoting wizard. Default: 7,500,000'],
+  // ── GLA — Actuarial Engine ─────────────────────────────────────────────
+  ['expDiv',           'GLA — Expense Loading Divisor',     0.50, 1.50, 0.01,   'Core GLA rate divisor: loaded_rate = net_rate ÷ expDiv. Default: 1.20'],
+  ['ciLoad',           'GLA — CI Rate Loading Stripper',    0.10, 0.40, 0.01,   'CI table embedded loading stripped before pricing. Default: 0.20'],
+  ['disFac',           'GLA — Disability Rate Factor',      0.20, 0.65, 0.01,   'TPD as fraction of blended net CI rate. Default: 0.40'],
+  ['adFac',            'GLA — Accidental Death Factor',     0.05, 0.25, 0.01,   'Flat % of loaded GLA premium. Default: 0.10'],
+  ['spSetback',        'GLA — Spouse Age Setback (yrs)',    0,    6,    1,      'Years deducted from member age for spouse proxy. Default: 3'],
+  ['parentOffset',     'GLA — Parent Age Offset (yrs)',     15,   25,   1,      'Years added to member age for parent proxy. Default: 20'],
+  ['childMort',        'GLA — Child Mortality Rate',        0.001,0.010,0.001,  'Annual risk coefficient per unit of child SA. Default: 0.003'],
+  ['ciMaxAge',         'GLA — CI/TPD Max Cover Age',        60,   80,   1,      'Above this age excluded from CI/TPD. Default: 75'],
+  ['edu_discount_rate','GLA — Education Discount Rate',     0.05, 0.30, 0.01,   'Annuity-due discount rate for Education Cover. Default: 0.15'],
+  // ── GLA — Product / UI ─────────────────────────────────────────────────
+  ['validDays',        'GLA — Quote Validity (days)',       14,   90,   1,      'Days before PDF quote expires. Default: 30'],
+  ['funeralMin',       'GLA — Min Funeral Benefit (MWK)',   500000,  2000000,  500000, 'Wizard lower bound. Default: 500,000'],
+  ['funeralMax',       'GLA — Max Funeral Benefit (MWK)',   3000000, 15000000, 500000, 'Wizard upper bound. Default: 7,500,000'],
+  // ── GFC — Group Funeral Cover ──────────────────────────────────────────
+  ['gfc_expDiv',       'GFC — Expense Loading Divisor',    0.50, 1.50, 0.01,   'Standalone funeral rate divisor. Default: 1.15'],
+  ['gfc_parentLoad',   'GFC — Parent Mortality Loading',   1.00, 5.00, 0.10,   'Multiplier on parent funeral mortality rate. Default: 2.80'],
+  ['gfc_commission',   'GFC — Commission Rate',            0.00, 0.25, 0.01,   'Broker/agent commission on gross premium. Default: 0.10'],
+  // ── GFS — Funeral Services (Monthly premiums per member type) ──────────
+  ['gfs_single_std',   'GFS Standard — Single Adult (MWK/mo)',     1000, 20000, 100, 'Monthly premium: member + 4 children. Default: 5,700'],
+  ['gfs_single_exe',   'GFS Executive — Single Adult (MWK/mo)',    1000, 30000, 100, 'Default: 9,000'],
+  ['gfs_single_vip',   'GFS VIP — Single Adult (MWK/mo)',          1000, 40000, 100, 'Default: 11,600'],
+  ['gfs_family_std',   'GFS Standard — Family (MWK/mo)',           1000, 30000, 100, 'Monthly premium: member + spouse + 4 children. Default: 10,700'],
+  ['gfs_family_exe',   'GFS Executive — Family (MWK/mo)',          1000, 50000, 100, 'Default: 17,600'],
+  ['gfs_family_vip',   'GFS VIP — Family (MWK/mo)',                1000, 60000, 100, 'Default: 22,100'],
+  ['gfs_commission',   'GFS — Commission Rate',                    0.00, 0.25, 0.01, 'Broker/agent commission. Default: 0.10'],
+  // ── GCL — Group Credit Life ────────────────────────────────────────────
+  ['gcl_baseRate',     'GCL — Annual Base Rate',           0.005, 0.030, 0.001, 'Annual rate × loan × (term/12) = single prem. Default: 0.0143 (1.43%)'],
+  ['gcl_minRate',      'GCL — Minimum Rate Floor',         0.003, 0.015, 0.001, 'Minimum single prem as % of loan. Default: 0.0070 (0.70%)'],
+  ['gcl_ciRiderPct',   'GCL — CI Rider Rate',              0.001, 0.010, 0.001, 'Add-on rate for CI rider. Default: 0.0025'],
+  ['gcl_hospPa',       'GCL — Hosp. Rider (MWK/member/yr)',200, 10000, 100,    'Flat hospitalisation rider cost per member per year. Default: 1,800'],
+  ['gcl_commission',   'GCL — Commission Rate',            0.00, 0.25, 0.01,   'Default: 0.10'],
+  ['gcl_maxAge',       'GCL — Maximum Cover Age',          55,   75,   1,      'Borrowers above this age excluded. Default: 65'],
+  // ── RET — Retrenchment + Abscondence ──────────────────────────────────
+  ['ret_rateMonthly',  'RET — Retrenchment Rate (per month)', 0.0005, 0.010, 0.0001, 'Monthly rate × loan × term = single premium. Default: 0.0024'],
+  ['ret_absRateMonthly','RET — Abscondence Rider Rate (per month)', 0.0001, 0.005, 0.0001, 'Add-on monthly rate for abscondence rider. Default: 0.0016'],
+  ['ret_benefitMonths','RET — Benefit Period (months)',     3,    12,   1,     'Months of instalments paid on valid claim. Default: 6'],
+  ['ret_qualifyingDays','RET — Qualifying Period (days)',   30,   180,  10,    'Consecutive days to qualify for abscondence benefit. Default: 90'],
+  ['ret_commission',   'RET — Commission Rate',            0.00, 0.25, 0.01,  'Default: 0.10'],
 ];
 
 
@@ -2526,14 +2713,27 @@ const ADM_META=[
 function renderAdminFields(){
   const isAdmin=CURRENT_USER?.role==='admin';
   const liveNote=isAdmin
-    ?'<p style="font-size:11px;color:#1D6A45;background:#E8F5E9;border:1px solid #A5D6A7;padding:7px 10px;border-radius:4px;margin-bottom:12px">&#10003; Actuarial parameters are sent live to the GAS engine on every quote. Changes take effect immediately without redeployment.</p>'
+    ?'<p style="font-size:11px;color:#1D6A45;background:#E8F5E9;border:1px solid #A5D6A7;padding:7px 10px;border-radius:4px;margin-bottom:12px">&#10003; Parameters are sent live to the GAS engine on every quote. Changes take effect immediately.</p>'
     :'<p style="font-size:11px;color:#888;background:#F5F5F5;border:1px solid #DDD;padding:7px 10px;border-radius:4px;margin-bottom:12px">&#8505; Admin role required to modify engine parameters.</p>';
-  const engineKeys=['expDiv','ciLoad','disFac','adFac','spSetback','parentOffset','childMort','ciMaxAge','edu_discount_rate'];
+  const sectionHdrs={
+    expDiv:'GLA — Group Life Assurance',validDays:'GLA — Product / UI',
+    gfc_expDiv:'GFC — Group Funeral Cover',gfs_single_std:'GFS — Funeral Services',
+    gcl_baseRate:'GCL — Group Credit Life',ret_rateMonthly:'RET — Retrenchment & Abscondence'
+  };
+  const engineKeys=['expDiv','ciLoad','disFac','adFac','spSetback','parentOffset',
+    'childMort','ciMaxAge','edu_discount_rate','gfc_expDiv','gfc_parentLoad','gfc_commission',
+    'gfs_single_std','gfs_single_exe','gfs_single_vip','gfs_family_std','gfs_family_exe',
+    'gfs_family_vip','gfs_commission','gcl_baseRate','gcl_minRate','gcl_ciRiderPct',
+    'gcl_hospPa','gcl_commission','gcl_maxAge','ret_rateMonthly','ret_absRateMonthly',
+    'ret_benefitMonths','ret_qualifyingDays','ret_commission'];
   document.getElementById('admin-fields').innerHTML=liveNote+ADM_META.map(function([k,lbl,mn,mx,st,hint]){
     const isEng=engineKeys.includes(k);
-    const sep=k==='validDays'?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--T2);margin:16px 0 8px;border-bottom:1px solid var(--BD);padding-bottom:4px">Product / UI Settings</div>':'';
-    return sep+'<div class="fld"><label>'+lbl+(isEng?'<span style="font-size:9px;color:#1D6A45;margin-left:6px;font-weight:400">&#9654; ENGINE</span>':'')+'</label>'
-      +'<input type="number" id="adm-'+k+'" min="'+mn+'" max="'+mx+'" step="'+st+'" value="'+ADM[k]+'" style="font-family:monospace"'+(isAdmin?'':' disabled title="Admin only"')+'>'
+    const sec=sectionHdrs[k]
+      ?'<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#641414;margin:18px 0 8px;border-bottom:1.5px solid #EDCECE;padding-bottom:4px">'+sectionHdrs[k]+'</div>'
+      :'';
+    const val=ADM[k]!==undefined?ADM[k]:'';
+    return sec+'<div class="fld"><label>'+lbl+(isEng?'<span style="font-size:9px;color:#1D6A45;margin-left:6px;font-weight:400">&#9654; ENGINE</span>':'')+'</label>'
+      +'<input type="number" id="adm-'+k+'" min="'+mn+'" max="'+mx+'" step="'+st+'" value="'+val+'" style="font-family:monospace"'+(isAdmin?'':' disabled title="Admin only"')+'>'
       +'<span class="adm-note">'+hint+'</span></div>';
   }).join('');
   document.getElementById('adm-gas').value=ADM.gasUrl||'';
@@ -2556,32 +2756,719 @@ function resetAdmin(){
 /* ═══════════════════════════════════════════════════════
    SCREEN ROUTING
 ═══════════════════════════════════════════════════════ */
-function startProduct(prod){
+// SVG icons for bottom sheet option buttons (white on maroon)
+const _BS_ICONS={
+  fast:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M13 2L4 14h7v8l9-12h-7V2z" fill="white" stroke="white" stroke-width="1.2" stroke-linejoin="round"/></svg>',
+  full:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="18" rx="2" stroke="white" stroke-width="1.75"/><line x1="8" y1="8" x2="16" y2="8" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="12" x2="16" y2="12" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="8" y1="16" x2="12" y2="16" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  gcl:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2.5" stroke="white" stroke-width="1.75"/><line x1="2" y1="10" x2="22" y2="10" stroke="white" stroke-width="1.75"/><path d="M7 15l2 2 4-4" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ret:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 018-8 8 8 0 016.93 4" stroke="white" stroke-width="1.75" stroke-linecap="round"/><path d="M20 12a8 8 0 01-8 8 8 8 0 01-6.93-4" stroke="white" stroke-width="1.75" stroke-linecap="round"/><polyline points="19 4 20.93 8 17 8.5" stroke="white" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><polyline points="5 20 3.07 16 7 15.5" stroke="white" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  gfc:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3C7 3 3 7 3 12h18C21 7 17 3 12 3z" stroke="white" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 12v6.5a2.5 2.5 0 005 0" stroke="white" stroke-width="1.75" stroke-linecap="round"/></svg>',
+  gfs:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 13c0 0-4.5-2-4.5-5.5a4.5 4.5 0 019 0C16.5 11 12 13 12 13z" stroke="white" stroke-width="1.75"/><path d="M12 13v7" stroke="white" stroke-width="1.75" stroke-linecap="round"/></svg>',
+};
+
+function openProductSheet(prod){
   PRODUCT=prod;
   const meta=PRODUCT_META[prod];
   if(!meta)return;
+  const hdrEl=document.getElementById('bs-prod-hdr');
+  const optsEl=document.getElementById('bs-opts');
+  const lblEl=document.getElementById('bs-section-lbl');
+
+  // Header: icon + title + description
+  const iconSvg=_BS_ICONS[prod]||_BS_ICONS.gcl;
+  hdrEl.innerHTML=
+    '<div class="bs-prod-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none">'
+    +(prod==='gla'?'<path d="M12 2L4 6.5V12c0 4.97 3.36 9.62 8 11.11C16.64 21.62 20 16.97 20 12V6.5L12 2z" fill="#641414" fill-opacity=".2" stroke="#641414" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#641414" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>'
+      :prod==='gfc'?'<path d="M12 3C7 3 3 7 3 12h18C21 7 17 3 12 3z" fill="#641414" fill-opacity=".2" stroke="#641414" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="12" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/><path d="M12 12v6.5a2.5 2.5 0 005 0" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/>'
+      :prod==='gfs'?'<path d="M12 13c0 0-4.5-2-4.5-5.5a4.5 4.5 0 019 0C16.5 11 12 13 12 13z" fill="#641414" fill-opacity=".2" stroke="#641414" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 13v7" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/>'
+      :'<rect x="5" y="11" width="14" height="10" rx="2" fill="#641414" fill-opacity=".2" stroke="#641414" stroke-width="1.75"/><path d="M8 11V7a4 4 0 018 0v4" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="16" r="1.5" fill="#641414"/>')
+    +'</svg></div>'
+    +'<div><div class="bs-prod-title">'+meta.label+'</div><div class="bs-prod-desc">'+meta.desc+'</div></div>';
+
+  // Options per product
   if(prod==='gla'){
-    // Toggle the mode picker panel
-    const panel=document.getElementById('gla-mode-panel');
-    if(!panel)return;
-    const open=panel.style.display==='none';
-    panel.style.display=open?'':'none';
-    if(open)panel.scrollIntoView({behavior:'smooth',block:'nearest'});
-    return;
+    lblEl.textContent='Select quote type';lblEl.style.display='';
+    optsEl.innerHTML=
+      '<div class="bs-opt" onclick="closeProductSheet();startQuote(\'fast\')">'
+        +'<div class="bs-opt-icon">'+_BS_ICONS.fast+'</div>'
+        +'<div><div class="bs-opt-title">Fast Quote</div><div class="bs-opt-sub">Aggregate group stats — no member census required</div></div>'
+        +'<span class="bs-opt-arr">›</span></div>'
+      +'<div class="bs-opt" onclick="closeProductSheet();startQuote(\'full\')">'
+        +'<div class="bs-opt-icon">'+_BS_ICONS.full+'</div>'
+        +'<div><div class="bs-opt-title">Full Quote (Census)</div><div class="bs-opt-sub">Upload member census for individual per-member pricing</div></div>'
+        +'<span class="bs-opt-arr">›</span></div>';
+  } else if(prod==='lp'){
+    lblEl.textContent='Select loan protection product';lblEl.style.display='';
+    optsEl.innerHTML=
+      '<div class="bs-opt soon" onclick="showToast(\'Credit Life quoting — available in the next release\',\'info\',4000)">'
+        +'<div class="bs-opt-icon">'+_BS_ICONS.gcl+'</div>'
+        +'<div><div class="bs-opt-title">Credit Life</div><div class="bs-opt-sub">Single-premium loan protection with CI, hospitalisation &amp; funeral riders</div></div>'
+        +'<span class="bs-opt-arr">›</span></div>'
+      +'<div class="bs-opt soon" onclick="showToast(\'Retrenchment quoting — available in the next release\',\'info\',4000)">'
+        +'<div class="bs-opt-icon">'+_BS_ICONS.ret+'</div>'
+        +'<div><div class="bs-opt-title">Retrenchment &amp; Abscondence</div><div class="bs-opt-sub">Once-off or monthly premium — 6-month instalment benefit</div></div>'
+        +'<span class="bs-opt-arr">›</span></div>';
+  } else if(prod==='gfc'){
+    lblEl.textContent='Select quote type';lblEl.style.display='';
+    optsEl.innerHTML=
+      '<div class="bs-opt" onclick="closeProductSheet();startGFCWizard(\'fast\')">'
+        +'<div class="bs-opt-icon">'+_BS_ICONS.fast+'</div>'
+        +'<div><div class="bs-opt-title">Fast Quote</div><div class="bs-opt-sub">Aggregate group stats — no member census required</div></div>'
+        +'<span class="bs-opt-arr">›</span></div>'
+      +'<div class="bs-opt" onclick="closeProductSheet();startGFCWizard(\'full\')">'
+        +'<div class="bs-opt-icon">'+_BS_ICONS.full+'</div>'
+        +'<div><div class="bs-opt-title">Full Quote (Census)</div><div class="bs-opt-sub">Upload member census for per-member funeral premium pricing</div></div>'
+        +'<span class="bs-opt-arr">›</span></div>';
   }
-  if(!meta.ready){
-    showToast(meta.label+' quoting is being configured — available in the next release.','info',4000);
-    return;
-  }
-  // Phase 2+: route to product-specific wizard
+
+  // Open sheet
+  document.getElementById('bs-overlay').classList.add('open');
+  document.getElementById('bs-sheet').classList.add('open');
+  document.body.style.overflow='hidden';
 }
 
-function getProductBadge(prod,mode){
-  const meta=PRODUCT_META[prod||'gla'];
-  const short=meta?meta.short:'GLA';
-  const cls=prod||'gla';
-  const modeTxt=mode==='full'?' · Full':mode==='fast'?' · Fast':'';
-  return '<span class="prod-badge '+cls+'">'+short+modeTxt+'</span>';
+function closeProductSheet(){
+  document.getElementById('bs-overlay').classList.remove('open');
+  document.getElementById('bs-sheet').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+function startProduct(prod){openProductSheet(prod);}  // backward compat alias
+
+/* ═══════════════════════════════════════════════════════
+   GFC — GROUP FUNERAL COVER WIZARD
+════════════════════════════════════════════════════════ */
+let Q_GFC={
+  company:'',address:'',city:'Blantyre',date:'',ref:'',
+  n:100,avg_age:35,pf:40,sal_bill:0,
+  f_mBen:1000000,f_scope:'member_family',
+  f_nCh:2,f_cPct:50,f_nPar:1,f_pPct:25,
+  use_tiers:false,tiers:[],
+};
+let GFC_STEP=1, GFC_RESULTS=null, GFC_COMPUTING=false, GFC_MODE='fast';
+const GFC_STEP_TITLES=['Client Details','Membership Details','Benefit Structure','Quote Summary'];
+
+function startGFCWizard(mode){
+  PRODUCT='gfc';
+  GFC_MODE=mode||'fast';
+  GFC_STEP=1; GFC_RESULTS=null; GFC_COMPUTING=false;
+  Q_GFC.date=new Date().toISOString().split('T')[0];
+  Q_GFC.ref='gfc_'+Date.now();
+  showView('view-wizard-gfc');
+  // Update mode badge
+  const mb=document.getElementById('gfc-mode-badge');
+  if(mb)mb.textContent=GFC_MODE==='full'?'Full Quote':'Fast Quote';
+  gfcShowStep(1);
+}
+
+function gfcShowStep(n){
+  GFC_STEP=n;
+  for(let i=1;i<=4;i++){
+    const pi=document.getElementById('gfc-pi'+i);
+    if(!pi)continue;
+    pi.classList.toggle('on',i===n);
+    pi.classList.toggle('done',i<n);
+    const dot=pi.querySelector('.pdot');
+    if(dot)dot.textContent=i<n?'✓':i;
+  }
+  const t=document.getElementById('gfc-step-title');
+  if(t)t.textContent=GFC_STEP_TITLES[n-1];
+  // Show correct step div
+  ['gfc-s1','gfc-s2-fast','gfc-s2-full','gfc-s3','gfc-s4'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(!el)return;
+    const active=(id==='gfc-s1'&&n===1)
+      ||(id==='gfc-s2-fast'&&n===2&&GFC_MODE==='fast')
+      ||(id==='gfc-s2-full'&&n===2&&GFC_MODE==='full')
+      ||(id==='gfc-s3'&&n===3)
+      ||(id==='gfc-s4'&&n===4);
+    el.classList.toggle('on',active);
+  });
+  // Restore field values
+  if(n===1){
+    setV('gfc-company',Q_GFC.company);setV('gfc-address',Q_GFC.address);
+    setV('gfc-city',Q_GFC.city);setV('gfc-date',Q_GFC.date);setV('gfc-ref',Q_GFC.ref);
+  }
+  if(n===2&&GFC_MODE==='fast'){
+    setV('gfc-n',Q_GFC.n||'');setV('gfc-age',Q_GFC.avg_age||'');
+    const sl=document.getElementById('gfc-pf');
+    if(sl){sl.value=Q_GFC.pf;document.getElementById('gfc-pf-disp').textContent=Q_GFC.pf+'%';}
+  }
+  if(n===2&&GFC_MODE==='full'){
+    renderGFCMDB();
+  }
+  if(n===3){
+    const ben=document.getElementById('gfc-ben');
+    const knownVals=['500000','750000','1000000','1500000','2000000','3000000'];
+    if(ben){
+      if(knownVals.includes(String(Q_GFC.f_mBen))){
+        ben.value=String(Q_GFC.f_mBen);
+        document.getElementById('gfc-ben-custom-wrap').style.display='none';
+      } else {
+        ben.value='custom';setV('gfc-ben-custom',Q_GFC.f_mBen);
+        document.getElementById('gfc-ben-custom-wrap').style.display='';
+      }
+    }
+    // Restore tier/uniform toggle state
+    const selTiers=document.getElementById('gfc-use-tiers');
+    if(selTiers)selTiers.value=Q_GFC.use_tiers?'1':'0';
+    document.getElementById('gfc-uniform-sec').style.display=Q_GFC.use_tiers?'none':'';
+    document.getElementById('gfc-tiered-sec').style.display=Q_GFC.use_tiers?'':'none';
+    if(Q_GFC.use_tiers)renderGFCTiers();
+    setV('gfc-scope',Q_GFC.f_scope);setV('gfc-nch',Q_GFC.f_nCh);setV('gfc-npar',Q_GFC.f_nPar);
+    gfcScopeChange();
+  }
+  if(n===4)gfcRenderSummary();
+  const back=document.getElementById('gfc-nav-back');
+  const next=document.getElementById('gfc-nav-next');
+  if(back)back.textContent=n===1?'← Home':'← Back';
+  if(next){
+    next.textContent=n===4&&GFC_RESULTS?'New Quote':n===4?'':'Next →';
+    next.style.display=n===4&&!GFC_RESULTS?'none':'';
+  }
+  const v=document.getElementById('view-wizard-gfc');
+  if(v)v.scrollTop=0;
+}
+
+function setV(id,val){const el=document.getElementById(id);if(el&&val!==undefined&&val!==null)el.value=val;}
+
+function renderGFCMDB(){
+  const srch=(document.getElementById('gfc-mdb-search')?.value||'').toLowerCase();
+  const tbody=document.getElementById('gfc-mdb-tbody');
+  const info=document.getElementById('gfc-mdb-info');
+  if(!tbody)return;
+  const list=MDB_LIST||[];
+  const filtered=list.filter(function(m){
+    return !srch||(m.name||'').toLowerCase().includes(srch);
+  });
+  tbody.innerHTML=filtered.map(function(m,i){
+    const sel=MEMBERS.some(function(x){return x.id===m.id;});
+    const age=m.age_nearest||'—';
+    return '<tr class="mdb-row'+(sel?' sel':'')+'"><td><input type="checkbox" '+(sel?'checked':'')
+      +' onchange="gfcToggleMember(\''+m.id+'\',this.checked);renderGFCMDB()"></td>'
+      +'<td>'+(i+1)+'</td><td>'+((m.name||'Unnamed'))+'</td><td>'+(m.gender||'—')+'</td>'
+      +'<td>'+age+'</td><td class="r">'+(m.annual_salary?fmt(m.annual_salary):'—')+'</td>'
+      +'<td></td></tr>';
+  }).join('');
+  const selCount=MEMBERS.length;
+  if(info)info.textContent=filtered.length===0?'No members — import a census or add individually'
+    :selCount+' of '+list.length+' members selected for this quote';
+  // update select-all checkbox
+  const ca=document.getElementById('gfc-mdb-all');
+  if(ca)ca.checked=selCount===list.length&&list.length>0;
+}
+
+function gfcToggleMember(id,checked){
+  const m=MDB_LIST.find(function(x){return x.id===id;});
+  if(!m)return;
+  if(checked&&!MEMBERS.some(function(x){return x.id===id;})){MEMBERS.push(m);}
+  else if(!checked){MEMBERS=MEMBERS.filter(function(x){return x.id!==id;});}
+}
+
+function gfcBenChange(){
+  const v=document.getElementById('gfc-ben').value;
+  document.getElementById('gfc-ben-custom-wrap').style.display=v==='custom'?'':'none';
+}
+
+function gfcScopeChange(){
+  const s=document.getElementById('gfc-scope');
+  if(!s)return;
+  const scope=s.value;
+  const chW=document.getElementById('gfc-ch-wrap');
+  const parW=document.getElementById('gfc-par-wrap');
+  if(chW)chW.style.display=scope==='member_only'?'none':'';
+  if(parW)parW.style.display=scope==='member_family'?'':'none';
+}
+
+/* ── Tier management ───────────────────────────────── */
+const GFC_TIER_PRESETS=['Executive','Senior Management','Management','Assistant Management','General Staff','Contract Staff'];
+const GFC_BEN_OPTS=[500000,750000,1000000,1500000,2000000,3000000];
+
+function gfcToggleTiers(){
+  const sel=document.getElementById('gfc-use-tiers');
+  if(!sel)return;
+  Q_GFC.use_tiers=sel.value==='1';
+  document.getElementById('gfc-uniform-sec').style.display=Q_GFC.use_tiers?'none':'';
+  document.getElementById('gfc-tiered-sec').style.display=Q_GFC.use_tiers?'':'none';
+  if(Q_GFC.use_tiers&&Q_GFC.tiers.length===0){
+    Q_GFC.tiers=[
+      {name:'Executive',n:Math.round(Q_GFC.n*0.05)||5,f_mBen:3000000},
+      {name:'Management',n:Math.round(Q_GFC.n*0.15)||15,f_mBen:2000000},
+      {name:'General Staff',n:Math.round(Q_GFC.n*0.80)||80,f_mBen:1000000},
+    ];
+  }
+  renderGFCTiers();
+}
+
+function renderGFCTiers(){
+  const list=document.getElementById('gfc-tiers-list');
+  if(!list)return;
+  list.innerHTML=Q_GFC.tiers.map(function(t,i){
+    const opts=GFC_BEN_OPTS.map(function(v){
+      return '<option value="'+v+'"'+(t.f_mBen==v?' selected':'')+'>'+'MWK '+fmt(v)+'</option>';
+    }).join('');
+    return '<div class="tier-card">'
+      +'<div class="tier-card-hdr">'
+      +'<input value="'+t.name+'" placeholder="e.g. Executive" style="flex:1;font-weight:600;font-size:12px;border:1px solid #EAE4DA;border-radius:4px;padding:5px 8px" oninput="Q_GFC.tiers['+i+'].name=this.value">'
+      +(Q_GFC.tiers.length>1?'<button class="tier-remove" onclick="gfcRemoveTier('+i+')">&#10005; Remove</button>':'')
+      +'</div>'
+      +'<div class="tier-card-grid">'
+      +'<div><label>No. of Members</label><input type="number" min="1" value="'+t.n+'" style="width:100%" oninput="Q_GFC.tiers['+i+'].n=+this.value;gfcUpdateTierTotal()"></div>'
+      +'<div><label>Funeral Benefit</label><select style="width:100%" onchange="Q_GFC.tiers['+i+'].f_mBen=+this.value">'+opts+'</select></div>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+  gfcUpdateTierTotal();
+}
+
+function gfcAddTier(){
+  const idx=Q_GFC.tiers.length;
+  const preset=GFC_TIER_PRESETS[idx]||'Tier '+(idx+1);
+  const lastBen=Q_GFC.tiers.length>0?Q_GFC.tiers[Q_GFC.tiers.length-1].f_mBen:1000000;
+  Q_GFC.tiers.push({name:preset,n:10,f_mBen:Math.max(500000,lastBen-500000)});
+  renderGFCTiers();
+}
+
+function gfcRemoveTier(i){
+  Q_GFC.tiers.splice(i,1);
+  renderGFCTiers();
+}
+
+function gfcUpdateTierTotal(){
+  const total=Q_GFC.tiers.reduce(function(s,t){return s+(+t.n||0);},0);
+  const el=document.getElementById('gfc-tiers-total');
+  if(el)el.textContent=fmt(total);
+}
+
+function gfcClearErr(id){const e=document.getElementById(id);if(e)e.innerHTML='';}
+function gfcShowErr(id,msg){const e=document.getElementById(id);if(e)e.innerHTML='<div class="msg err">'+msg+'</div>';}
+
+function gfcValidateStep(n){
+  if(n===1){
+    const co=document.getElementById('gfc-company')?.value.trim();
+    const dt=document.getElementById('gfc-date')?.value;
+    if(!co){gfcShowErr('gfc-s1-err','Company name is required');return false;}
+    if(!dt){gfcShowErr('gfc-s1-err','Commencement date is required');return false;}
+    gfcClearErr('gfc-s1-err');
+    Q_GFC.company=co;
+    Q_GFC.address=document.getElementById('gfc-address')?.value.trim()||'';
+    Q_GFC.city=document.getElementById('gfc-city')?.value.trim()||'Blantyre';
+    Q_GFC.date=dt;
+    Q_GFC.ref=document.getElementById('gfc-ref')?.value.trim()||'gfc_'+Date.now();
+    return true;
+  }
+  if(n===2){
+    if(GFC_MODE==='full'){
+      if(!MEMBERS||MEMBERS.length<1){gfcShowErr('gfc-s2f-err','Select at least one member from the census');return false;}
+      gfcClearErr('gfc-s2f-err');
+      const ages=MEMBERS.map(function(m){return +m.age_nearest||35;});
+      Q_GFC.n=MEMBERS.length;
+      Q_GFC.avg_age=Math.round(ages.reduce(function(a,b){return a+b;},0)/ages.length);
+      Q_GFC.pf=Math.round(MEMBERS.filter(function(m){return(m.gender||'M').toUpperCase()==='F';}).length/MEMBERS.length*100);
+      Q_GFC.sal_bill=MEMBERS.reduce(function(s,m){return s+(+m.annual_salary||0);},0);
+      return true;
+    }
+    const nv=parseInt(document.getElementById('gfc-n')?.value);
+    const av=parseInt(document.getElementById('gfc-age')?.value);
+    if(!nv||nv<1){gfcShowErr('gfc-s2-err','Number of members must be at least 1');return false;}
+    if(!av||av<16||av>75){gfcShowErr('gfc-s2-err','Average age must be between 16 and 75');return false;}
+    gfcClearErr('gfc-s2-err');
+    Q_GFC.n=nv; Q_GFC.avg_age=av;
+    Q_GFC.pf=parseInt(document.getElementById('gfc-pf')?.value)||40;
+    Q_GFC.sal_bill=parseFloat(document.getElementById('gfc-sal-bill')?.value)||0;
+    return true;
+  }
+  if(n===3){
+    Q_GFC.f_scope=document.getElementById('gfc-scope')?.value||'member_family';
+    Q_GFC.f_nCh=Q_GFC.f_scope==='member_only'?0:Math.min(parseInt(document.getElementById('gfc-nch')?.value)||0,4);
+    Q_GFC.f_nPar=Q_GFC.f_scope==='member_family'?Math.min(parseInt(document.getElementById('gfc-npar')?.value)||0,2):0;
+    Q_GFC.f_cPct=50; Q_GFC.f_pPct=25;
+    if(Q_GFC.use_tiers){
+      if(!Q_GFC.tiers||Q_GFC.tiers.length===0){gfcShowErr('gfc-s3-err','Add at least one tier');return false;}
+      const totalN=Q_GFC.tiers.reduce(function(s,t){return s+(+t.n||0);},0);
+      if(totalN<1){gfcShowErr('gfc-s3-err','Total members across all tiers must be at least 1');return false;}
+      Q_GFC.n=totalN;
+      // Re-read tier values from DOM inputs to capture latest values
+      const cards=document.querySelectorAll('#gfc-tiers-list .tier-card');
+      cards.forEach(function(card,i){
+        if(Q_GFC.tiers[i]){
+          const inp=card.querySelector('input[type="number"]');
+          const sel=card.querySelector('select');
+          if(inp)Q_GFC.tiers[i].n=+inp.value||Q_GFC.tiers[i].n;
+          if(sel)Q_GFC.tiers[i].f_mBen=+sel.value||Q_GFC.tiers[i].f_mBen;
+        }
+      });
+      gfcClearErr('gfc-s3-err');
+      return true;
+    }
+    const benSel=document.getElementById('gfc-ben')?.value;
+    let ben=benSel==='custom'
+      ?parseFloat(document.getElementById('gfc-ben-custom')?.value)
+      :parseFloat(benSel);
+    if(!ben||ben<100000){gfcShowErr('gfc-s3-err','Please select a valid funeral benefit amount');return false;}
+    gfcClearErr('gfc-s3-err');
+    Q_GFC.f_mBen=ben;
+    // In uniform mode, represent as a single tier internally
+    Q_GFC.tiers=[{name:'All Members',n:Q_GFC.n,f_mBen:ben}];
+    return true;
+  }
+  return true;
+}
+
+async function navNextGFC(){
+  if(GFC_STEP===4){startGFCWizard();return;}
+  if(!gfcValidateStep(GFC_STEP))return;
+  gfcShowStep(GFC_STEP+1);
+}
+
+function navBackGFC(){
+  if(GFC_STEP===1){showHome();return;}
+  gfcShowStep(GFC_STEP-1);
+}
+
+async function gfcRenderSummary(){
+  const sc=document.getElementById('gfc-summary-content');
+  if(!sc)return;
+  if(GFC_RESULTS){gfcDisplaySummary();return;}
+  // Show spinner
+  sc.innerHTML='<div style="text-align:center;padding:40px 20px">'
+    +'<div class="spin" style="margin:0 auto 14px"></div>'
+    +'<p style="color:#641414;font-size:14px;font-weight:700">Calculating your premium&hellip;</p>'
+    +'<p style="color:#AAA;font-size:12px">Connecting to GAS pricing engine</p></div>';
+  const next=document.getElementById('gfc-nav-next');
+  if(next)next.style.display='none';
+  GFC_COMPUTING=true;
+  try{
+    const gasUrl=(ADM.gasUrl||'').trim();
+    if(!gasUrl){sc.innerHTML='<div class="msg err">GAS URL not configured. Go to Admin Settings.</div>';GFC_COMPUTING=false;return;}
+    const token=getSessionToken();
+    const qEnc=encodeURIComponent(JSON.stringify({
+      mode:GFC_MODE,
+      company:Q_GFC.company,n:Q_GFC.n,avg_age:Q_GFC.avg_age,pf:Q_GFC.pf/100,
+      f_mBen:Q_GFC.f_mBen,f_scope:Q_GFC.f_scope,
+      f_nCh:Q_GFC.f_nCh,f_cPct:Q_GFC.f_cPct/100,
+      f_nPar:Q_GFC.f_nPar,f_pPct:Q_GFC.f_pPct/100,
+      use_tiers:Q_GFC.use_tiers,tiers:Q_GFC.tiers,
+      sal_bill:Q_GFC.sal_bill,
+    }));
+    let url=gasUrl+'?action=calcGFC&q='+qEnc+(token?'&token='+encodeURIComponent(token):'');
+    // Full mode: attach member census
+    if(GFC_MODE==='full'&&MEMBERS.length>0){
+      const compact=MEMBERS.map(function(m){return[m.gender||'M',+m.age_nearest||35,+m.annual_salary||0];});
+      url+='&members='+encodeURIComponent(JSON.stringify(compact));
+    }
+    if(CURRENT_USER?.role==='admin'){
+      const ap={};ADM_META.forEach(([k])=>{if(typeof ADM[k]==='number')ap[k]=ADM[k];});
+      url+='&adm='+encodeURIComponent(JSON.stringify(ap));
+    }
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error);
+    GFC_RESULTS=data;
+    gfcAutoSave();
+    gfcDisplaySummary();
+  }catch(err){
+    sc.innerHTML='<div class="msg err" style="margin:20px">Error: '+err.message+'</div>';
+    showToast(err.message||'Calculation failed','error');
+  }finally{GFC_COMPUTING=false;}
+}
+
+function gfcDisplaySummary(){
+  const r=GFC_RESULTS;
+  if(!r)return;
+  const sc=document.getElementById('gfc-summary-content');
+  if(!sc)return;
+  const isTiered=Q_GFC.use_tiers&&Array.isArray(r.tier_results)&&r.tier_results.length>1;
+  const salBill=Q_GFC.sal_bill||r.sal_bill||0;
+  const commRate=r.adm_used&&r.adm_used.gfc_commission!=null?r.adm_used.gfc_commission:0.10;
+
+  // Benefit table HTML
+  let benHTML='';
+  if(isTiered){
+    benHTML='<div class="sum-tier-row hdr"><span>Grade / Tier</span><span>Members</span><span>Benefit</span><span>Annual Prem</span></div>'
+      +r.tier_results.map(function(t){
+        const tg=t.tier_net/(1-commRate);
+        return '<div class="sum-tier-row"><span>'+t.name+'</span><span>'+fmt(t.n)+'</span>'
+          +'<span>'+fmt(t.f_mBen)+'</span><span>'+fmt(Math.round(tg))+'</span></div>';
+      }).join('');
+  } else {
+    const ben=Q_GFC.f_mBen||(r.f_mBen||1000000);
+    const bRows=[
+      {life:'Member',n:1,benefit:ben},
+      Q_GFC.f_scope!=='member_only'?{life:'Spouse',n:1,benefit:ben}:null,
+      Q_GFC.f_scope!=='member_only'&&Q_GFC.f_nCh>0?{life:'Child (per child)',n:Q_GFC.f_nCh,benefit:Math.round(ben*0.50)}:null,
+      Q_GFC.f_scope==='member_family'&&Q_GFC.f_nPar>0?{life:'Parent (per parent)',n:Q_GFC.f_nPar,benefit:Math.round(ben*0.25)}:null,
+    ].filter(Boolean);
+    benHTML='<table style="width:100%;border-collapse:collapse;table-layout:fixed">'
+      +'<colgroup><col style="width:52%"><col style="width:18%;text-align:center"><col style="width:30%"></colgroup>'
+      +'<thead><tr style="border-bottom:1.5px solid #EAE4DA">'
+      +'<th style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#AAA;padding:0 0 6px;text-align:left">Life Assured</th>'
+      +'<th style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#AAA;padding:0 0 6px;text-align:center">No. Covered</th>'
+      +'<th style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#AAA;padding:0 0 6px;text-align:right">Benefit (MWK)</th>'
+      +'</tr></thead>'
+      +'<tbody>'+bRows.map(function(b,i){
+        return '<tr style="border-bottom:1px solid #F5F0EB">'
+          +'<td style="padding:7px 0;font-size:12px">'+b.life+'</td>'
+          +'<td style="padding:7px 0;font-size:12px;text-align:center">'+b.n+'</td>'
+          +'<td style="padding:7px 0;font-size:12px;text-align:right;font-weight:600">'+fmt(b.benefit)+'</td>'
+          +'</tr>';
+      }).join('')+'</tbody></table>';
+  }
+
+  sc.innerHTML=
+    '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
+    +'<div class="sum-row"><span>Company</span><span>'+Q_GFC.company+'</span></div>'
+    +'<div class="sum-row"><span>Members</span><span>'+fmt(Q_GFC.n)+' members</span></div>'
+    +'<div class="sum-row"><span>Average Age</span><span>'+Q_GFC.avg_age+' years</span></div>'
+    +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFC.date+'</span></div>'
+    +'<div class="sum-row"><span>Quote Type</span><span>'+(isTiered?'Tiered':'Uniform')+' — '+(GFC_MODE==='full'?'Full Quote':'Fast Quote')+'</span></div>'
+    +'</div>'
+    +'<div class="sum-sec"><div class="sum-lbl">FUNERAL BENEFIT STRUCTURE</div>'+benHTML+'</div>'
+    +'<div class="sum-sec"><div class="sum-lbl">PREMIUM SUMMARY</div>'
+    +'<div class="sum-row hi"><span>Annual Premium (MWK)</span><span>'+fmt(Math.round(r.total_pa))+'</span></div>'
+    +'<div class="sum-row"><span>Monthly Equivalent</span><span>'+fmt(Math.round(r.total_monthly))+'</span></div>'
+    +'<div class="sum-row"><span>Monthly per Member</span><span>'+fmt(Math.round(r.total_monthly/Q_GFC.n))+'</span></div>'
+    +'<div class="sum-row"><span>Per Member Per Annum</span><span>'+fmt(Math.round(r.total_pa/Q_GFC.n))+'</span></div>'
+    +(salBill>0?'<div class="sum-row"><span>As % of Salary Bill</span><span>'+((r.total_pa/salBill)*100).toFixed(3)+'%</span></div>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:10px;margin-top:4px">'
+    +'<button class="btn primary" style="flex:1" onclick="gfcBuildPDF()">&#8681; Download PDF Quote</button>'
+    +'<button class="btn" style="flex:1" onclick="gfcSaveToSheet()">&#9729; Save to GAS</button>'
+    +'</div>';
+
+  const next=document.getElementById('gfc-nav-next');
+  if(next){next.textContent='New Quote';next.style.display='';}
+}
+
+function gfcAutoSave(){
+  if(!GFC_RESULTS)return;
+  try{
+    const id=Q_GFC.ref||('gfc_'+Date.now());
+    const entry={id,product:'gfc',mode:GFC_MODE,
+      q:{...Q_GFC},results:{...GFC_RESULTS},
+      savedAt:new Date().toISOString(),autoSaved:true};
+    const stored=JSON.parse(localStorage.getItem('vla_gla_quotes')||'[]');
+    const idx=stored.findIndex(function(x){return x.id===id;});
+    if(idx>=0)stored[idx]=entry; else stored.unshift(entry);
+    localStorage.setItem('vla_gla_quotes',JSON.stringify(stored.slice(0,200)));
+  }catch(e){}
+}
+
+function gfcSaveToSheet(){
+  if(!GFC_RESULTS)return;
+  const gasUrl=(ADM.gasUrl||'').trim();
+  const token=getSessionToken();
+  if(!gasUrl||!token){showToast('Save requires a GAS connection and active session','error');return;}
+  const payload={id:Q_GFC.ref,product:'gfc',mode:'fast',
+    company:Q_GFC.company,date:Q_GFC.date,n:Q_GFC.n,
+    total_pa:GFC_RESULTS.total_pa,q:JSON.stringify(Q_GFC),results:JSON.stringify(GFC_RESULTS)};
+  const url=gasUrl+'?action=saveQuote&data='+encodeURIComponent(JSON.stringify(payload))+'&token='+encodeURIComponent(token);
+  fetch(url).then(function(){showToast('Quote saved to Google Sheet','success');}).catch(function(){showToast('Save failed — check GAS connection','error');});
+}
+
+/* ─── GFC PDF BUILDER ─────────────────────────────────────────── */
+function gfcBuildPDF(){
+  if(!GFC_RESULTS){showToast('Run the quote calculation first','error');return;}
+  // Resolve jsPDF from any common export pattern
+  const JsPDF=window.jsPDF||(window.jspdf&&window.jspdf.jsPDF);
+  if(!JsPDF){showToast('PDF library not loaded — please refresh the page and try again.','error');return;}
+  try{
+    const r=GFC_RESULTS;
+    const q=Q_GFC;
+    const doc=new JsPDF('p','mm','a4');
+    const{width:W,height:H}=doc.internal.pageSize;
+    const ML=18,MR=18,CW=W-ML-MR;
+    const M=[100,20,20],TX=[30,20,20],GR=[120,110,100];
+    const isTiered=q.use_tiers&&Array.isArray(r.tier_results)&&r.tier_results.length>1;
+    const salBill=q.sal_bill||r.sal_bill||0;
+    const commRate=r.adm_used&&r.adm_used.gfc_commission!=null?r.adm_used.gfc_commission:0.10;
+    let y=20;
+
+    function f2(v){return v==null?'—':Math.round(v).toLocaleString();}
+
+    // tblHdr and tblRow use CW from outer scope
+    function tblHdr(cols){
+      doc.setFillColor(...M);doc.rect(ML,y,CW,6,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);
+      let cx=ML+3;
+      cols.forEach(function(c2){doc.text(c2.label,cx,y+4);cx+=c2.w;});
+      y+=6;
+    }
+    function tblRow(cols,row,rh,bg){
+      doc.setFillColor(...bg);doc.rect(ML,y,CW,rh,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+      let cx=ML+3;
+      cols.forEach(function(c2){
+        const txt=String(row[c2.key]||'');
+        if(c2.r)doc.text(txt,ML+CW-3,y+rh-2,{align:'right'});
+        else doc.text(doc.splitTextToSize(txt,c2.w-5)[0],cx,y+rh-2);
+        cx+=c2.w;
+      });
+      y+=rh;
+    }
+
+    // ── HEADER ────────────────────────────────────────────────────
+    // Try logo from topbar
+    const logoEl=document.querySelector('.topbar-left img,.topbar img,img[alt*="VLA"],img[alt*="Vanguard"]');
+    try{if(logoEl&&logoEl.src)doc.addImage(logoEl.src,'PNG',ML,y-4,32,14);}catch(e){}
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...GR);
+    ['Robins Road, P.O. Box 1625, Blantyre, Malawi',
+     'vanguard@vanguardlifemw.com  |  vanguardlifemw.com','+265 887 094 872']
+    .forEach(function(l,i){doc.text(l,W-MR,y+i*4.5,{align:'right'});});
+    y+=18;
+    doc.setFillColor(...M);doc.rect(ML,y,CW,0.5,'F');y+=6;
+
+    // Date + reference
+    const dtStr=new Date(q.date||Date.now()).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    doc.setFontSize(9);doc.setTextColor(...TX);
+    doc.text(dtStr,ML,y);
+    doc.setFont('helvetica','bold');doc.text('Quote Reference: '+q.ref,W-MR,y,{align:'right'});y+=10;
+
+    // Addressee
+    doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text((q.company||'').toUpperCase(),ML,y);y+=5;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
+    if(q.address){doc.text(q.address,ML,y);y+=5;}
+    doc.text(q.city||'Blantyre',ML,y);y+=5;
+    doc.text('Malawi',ML,y);y+=10;
+
+    doc.text('Dear Sir/Madam,',ML,y);y+=8;
+    doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text('RE: QUOTATION FOR GROUP FUNERAL COVER SCHEME',ML,y);y+=8;
+    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=6;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);
+    doc.text('The subject refers.',ML,y);y+=5;
+    doc.text('We write to formally submit our quotation for Group Funeral Cover as follows:',ML,y,{maxWidth:CW});y+=10;
+
+    // ── SCHEME DETAILS ────────────────────────────────────────────
+    tblHdr([{label:'SCHEME DETAILS',w:CW}]);
+    const sRows=[
+      {lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
+      {lbl:'Number of Members',val:f2(q.n)+' members'},
+      {lbl:'Cover Type',val:'Group Funeral Cover — '+( isTiered?'Tiered benefit structure':'Uniform standalone cash benefits')},
+      {lbl:'Commencement Date',val:dtStr},
+    ];
+    const sCols=[{key:'lbl',label:'',w:80},{key:'val',label:'',w:CW-80}];
+    sRows.forEach(function(row,i){tblRow(sCols,row,7,i%2===0?[255,255,255]:[248,245,241]);});
+    y+=6;
+
+    // ── FUNERAL BENEFIT STRUCTURE ─────────────────────────────────
+    if(isTiered){
+      tblHdr([{label:'BENEFIT STRUCTURE BY GRADE',w:CW}]);
+      const tCols=[{key:'name',label:'Grade / Tier',w:60},{key:'n',label:'Members',w:30},{key:'ben',label:'Member Funeral Benefit (MWK)',w:CW-90}];
+      r.tier_results.forEach(function(t,i){
+        tblRow(tCols,{name:t.name,n:String(t.n),ben:'MWK '+f2(t.f_mBen)},7,i%2===0?[255,255,255]:[248,245,241]);
+      });
+      y+=4;
+      // Dependant benefits (common to all tiers — show based on highest tier benefit for reference)
+      const maxBen=Math.max.apply(null,r.tier_results.map(function(t){return t.f_mBen;}));
+      const depCols=[{key:'life',label:'Dependant Life',w:80},{key:'n',label:'No. Covered',w:30},{key:'ben',label:'Benefit (MWK)',w:CW-110}];
+      const depRows=[];
+      if(q.f_scope!=='member_only')depRows.push({life:'Spouse',n:'1',ben:'MWK '+f2(maxBen)+' (100% of member benefit)'});
+      if(q.f_scope!=='member_only'&&q.f_nCh>0)depRows.push({life:'Child (per child)',n:String(q.f_nCh),ben:'MWK '+f2(Math.round(maxBen*0.50))+' max (50% of member benefit)'});
+      if(q.f_scope==='member_family'&&q.f_nPar>0)depRows.push({life:'Parent (per parent)',n:String(q.f_nPar),ben:'MWK '+f2(Math.round(maxBen*0.25))+' max (25% of member benefit)'});
+      if(depRows.length>0){
+        tblHdr([{label:'DEPENDANT BENEFITS (SCALE WITH MEMBER BENEFIT)',w:CW}]);
+        depRows.forEach(function(row,i){tblRow(depCols,row,7,i%2===0?[255,255,255]:[248,245,241]);});
+        y+=4;
+      }
+    } else {
+      const ben=q.f_mBen||(r.f_mBen||1000000);
+      const benRows=[
+        {life:'Member',n:'1',ben:'MWK '+f2(ben)},
+        q.f_scope!=='member_only'?{life:'Spouse',n:'1',ben:'MWK '+f2(ben)+' (100% of member benefit)'}:null,
+        q.f_scope!=='member_only'&&q.f_nCh>0?{life:'Child (per child)',n:String(q.f_nCh),ben:'MWK '+f2(Math.round(ben*0.50))+' (50% of member benefit)'}:null,
+        q.f_scope==='member_family'&&q.f_nPar>0?{life:'Parent (per parent)',n:String(q.f_nPar),ben:'MWK '+f2(Math.round(ben*0.25))+' (25% of member benefit)'}:null,
+      ].filter(Boolean);
+      const benCols=[{key:'life',label:'Life Assured',w:80},{key:'n',label:'No. Covered',w:30},{key:'ben',label:'Benefit on Death (MWK)',w:CW-110}];
+      tblHdr(benCols);
+      benRows.forEach(function(row,i){tblRow(benCols,row,7,i%2===0?[255,255,255]:[248,245,241]);});
+      y+=6;
+    }
+
+    // ── PREMIUM SUMMARY ───────────────────────────────────────────
+    tblHdr([{label:'PREMIUM SUMMARY',w:CW}]);
+    const pCols=[{key:'item',label:'Item',w:CW-60},{key:'val',label:'Amount (MWK)',w:60,r:true}];
+    const pRows=[];
+    if(isTiered){
+      r.tier_results.forEach(function(t){
+        pRows.push({item:t.name+' Funeral Cover ('+f2(t.n)+' members)',val:'MWK '+f2(Math.round(t.tier_net/(1-commRate)))});
+      });
+    } else {
+      const bd=r.breakdown||{};
+      if(bd.member)pRows.push({item:'Member Funeral Benefit',val:'MWK '+f2(bd.member)});
+      if(bd.spouse)pRows.push({item:'Spouse Funeral Benefit',val:'MWK '+f2(bd.spouse)});
+      if(bd.child)pRows.push({item:'Child Funeral Benefit',val:'MWK '+f2(bd.child)});
+      if(bd.parent)pRows.push({item:'Parent Funeral Benefit',val:'MWK '+f2(bd.parent)});
+    }
+    pRows.push({item:'TOTAL ANNUAL PREMIUM (GROSS)',val:'MWK '+f2(r.total_pa)});
+    pRows.push({item:'Monthly Premium Equivalent',val:'MWK '+f2(r.total_monthly)});
+    pRows.push({item:'Monthly Premium per Member',val:'MWK '+f2(r.total_monthly/q.n)});
+    pRows.push({item:'Annual Premium per Member',val:'MWK '+f2(r.total_pa/q.n)});
+    if(salBill>0)pRows.push({item:'Premium as % of Salary Bill',val:((r.total_pa/salBill)*100).toFixed(3)+'%'});
+    pRows.forEach(function(row,i){
+      const isTotal=row.item.startsWith('TOTAL');
+      const bg=isTotal?[240,232,224]:(i%2===0?[255,255,255]:[248,245,241]);
+      if(isTotal)doc.setFont('helvetica','bold');
+      tblRow(pCols,row,7,bg);
+      if(isTotal)doc.setFont('helvetica','normal');
+    });
+    y+=6;
+
+    // ── VALIDITY + SIGNATORIES ────────────────────────────────────
+    if(y>H-50){doc.addPage();y=20;}
+    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=6;
+    doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...GR);
+    doc.text('This quotation is valid for '+(ADM.validDays||30)+' days from the date of issue and is subject to the satisfactory completion of all required documentation. Premiums are reviewed annually.',ML,y,{maxWidth:CW});
+    y+=10;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+    doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);y+=12;
+
+    if(y>H-22){doc.addPage();y=20;}
+    const sigW=CW/3;
+    [['Chimwemwe Khonje','Head of Business Development','ckhonje@vanguardlifemw.com'],
+     ['Ken Phoya','Group Business Marketing Manager','kphoya@vanguardlifemw.com'],
+     ['Trish Madimbu','Business Development Officer','tmadimbu@vanguardlifemw.com'],
+    ].forEach(function([name,title,email],i){
+      const sx=ML+i*sigW;
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...TX);
+      doc.text(name,sx+sigW/2,y,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GR);
+      doc.text(title,sx+sigW/2,y+5,{align:'center'});
+      doc.text(email,sx+sigW/2,y+10,{align:'center'});
+    });
+    doc.setFillColor(...M);doc.rect(ML,y-2,CW,0.5,'F');
+
+    // ── PAGE 2 — EXCLUSIONS ───────────────────────────────────────
+    doc.addPage();y=20;
+    doc.setFillColor(...M);doc.rect(ML,y,CW,6,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);
+    doc.text('APPENDIX — GENERAL CONDITIONS & EXCLUSIONS',ML+4,y+4);y+=12;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+    ['Own act of omission or negligence','Suicide or self-inflicted injury',
+     'Alcohol or drug-related causes','Fraudulent acts',
+     'Hazardous leisure activities (winter sports, diving, rock climbing, etc.)',
+     'Active service or duty in armed forces',
+     'Riot, civil commotion, strikes, labour disturbances or acts of terrorism',
+     'War risk, act of foreign enemy, hostilities or civil war',
+     'Nuclear events','Deliberate exposure to exceptional danger']
+    .forEach(function(e){doc.text('• '+e,ML,y);y+=5.5;});
+
+    // Footer on all pages
+    const pg=doc.internal.getNumberOfPages();
+    for(let p=1;p<=pg;p++){
+      doc.setPage(p);
+      const footEl=document.querySelector('img[src*="pension"],img[src*="footer"],img.footer-img');
+      try{if(footEl&&footEl.src)doc.addImage(footEl.src,'PNG',0,H-22,W,22);}catch(e){}
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GR);
+      doc.text('Page '+p+' of '+pg,W-MR,H-6,{align:'right'});
+    }
+
+    doc.save('VLA-GFC-'+(q.company||'Quote').replace(/[^A-Za-z0-9]/g,'_')+'-'+q.ref+'.pdf');
+    showToast('PDF quote downloaded','success');
+  }catch(err){
+    showToast('PDF generation failed: '+err.message,'error');
+    console.error(err);
+  }
 }
 
 function showHome(){
@@ -2604,9 +3491,7 @@ function showAdmin(){
 }
 
 function startQuote(m){
-  // Close GLA mode picker if open
-  const _p=document.getElementById('gla-mode-panel');
-  if(_p)_p.style.display='none';
+  closeProductSheet();
   PRODUCT='gla';
   MODE=m;STEP=1;MEMBERS=[];RESULTS=null;
   // reset form state
@@ -3687,7 +4572,7 @@ function showView(id){
   const el=document.getElementById(id);
   if(el)el.style.display='block';
   // Sync mobile nav
-  var viewToNav={'view-home':'mn-home','view-history':'mn-hist','view-admin':'mn-admin','view-wizard':'mn-fast','view-mdb':null};
+  var viewToNav={'view-home':'mn-home','view-history':'mn-hist','view-admin':'mn-admin','view-wizard':'mn-fast','view-wizard-gfc':'mn-home','view-mdb':null};
   document.querySelectorAll('.mn-item').forEach(function(b){b.classList.remove('active');});
   var navId=viewToNav[id];
   if(navId){var nb=document.getElementById(navId);if(nb)nb.classList.add('active');}
@@ -4003,5 +4888,13 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<!-- ── PRODUCT BOTTOM SHEET ───────────────────────────── -->
+<div class="bs-overlay" id="bs-overlay" onclick="closeProductSheet()"></div>
+<div class="bs-sheet" id="bs-sheet">
+  <div class="bs-drag-wrap" onclick="closeProductSheet()"><span class="bs-drag"></span></div>
+  <div class="bs-prod-hdr" id="bs-prod-hdr"></div>
+  <div class="bs-section-lbl" id="bs-section-lbl" style="display:none"></div>
+  <div class="bs-opts" id="bs-opts"></div>
+</div>
 </body>
 </html>
