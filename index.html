@@ -3322,24 +3322,23 @@ function gfcBuildPDF(){
     doc.text(dtStr,ML,y);
     doc.setFont('helvetica','bold');
     doc.text('Quote Reference: '+q.ref,W-MR,y,{align:'right'});
-    y+=10;
+    y+=8;
 
     // Client address block
     doc.setFont('helvetica','bold');doc.setFontSize(10);
-    doc.text((q.company||'').toUpperCase(),ML,y);y+=6;
+    doc.text((q.company||'').toUpperCase(),ML,y);y+=5;
     doc.setFont('helvetica','normal');
-    if(q.address){doc.text(q.address,ML,y);y+=5;}
-    doc.text(q.city||'Blantyre',ML,y);y+=5;
-    doc.text('Malawi',ML,y);y+=10;
+    if(q.address){doc.text(q.address,ML,y);y+=4;}
+    doc.text(q.city||'Blantyre',ML,y);y+=4;
+    doc.text('Malawi',ML,y);y+=8;
 
     // Salutation + RE
-    doc.text('Dear Sir/Madam,',ML,y);y+=8;
+    doc.text('Dear Sir/Madam,',ML,y);y+=6;
     doc.setFont('helvetica','bold');doc.setFontSize(10);
-    doc.text('RE: QUOTATION FOR GROUP FUNERAL COVER SCHEME',ML,y);y+=7;
-    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=6;
+    doc.text('RE: QUOTATION FOR GROUP FUNERAL COVER SCHEME',ML,y);y+=4;
+    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=4;
     doc.setFont('helvetica','normal');doc.setFontSize(9.5);
-    doc.text('The subject refers.',ML,y);y+=5;
-    doc.text('We write to formally submit our quotation for Group Funeral Cover as follows:',ML,y,{maxWidth:CW});y+=10;
+    doc.text('We write to formally submit our quotation for Group Funeral Cover as follows:',ML,y,{maxWidth:CW});y+=8;
 
     // ── SCHEME DETAILS ──────────────────────────────────────────
     tblHdr([{label:'SCHEME DETAILS',w:CW}]);
@@ -3350,7 +3349,7 @@ function gfcBuildPDF(){
     ].forEach(function(row,i){
       tblRow([{key:'lbl',w:75},{key:'val',w:CW-75}],row,7,i%2===0?[255,255,255]:[248,245,241]);
     });
-    y+=6;
+    y+=4;
 
     // ── BENEFIT STRUCTURE ─────────────────────────────────────────
     if(isTiered){
@@ -3359,7 +3358,7 @@ function gfcBuildPDF(){
       r.tier_results.forEach(function(t,i){
         tblRow(tCols,{name:t.name,n:String(t.n),ben:'MWK '+f2(t.f_mBen)},7,i%2===0?[255,255,255]:[248,245,241]);
       });
-      y+=4;
+      y+=3;
       // Dependant benefits — common to all tiers
       const maxBen=Math.max.apply(null,r.tier_results.map(function(t){return t.f_mBen;}));
       const depRows=[];
@@ -3371,7 +3370,7 @@ function gfcBuildPDF(){
         depRows.forEach(function(row,i){
           tblRow([{key:'life',w:80},{key:'n',w:25},{key:'ben',w:CW-105}],row,7,i%2===0?[255,255,255]:[248,245,241]);
         });
-        y+=4;
+        y+=3;
       }
     } else {
       const ben=q.f_mBen||(r.f_mBen||1000000);
@@ -3385,7 +3384,7 @@ function gfcBuildPDF(){
       benRows.forEach(function(row,i){
         tblRow([{key:'life',w:80},{key:'n',w:25},{key:'ben',w:CW-105}],row,7,i%2===0?[255,255,255]:[248,245,241]);
       });
-      y+=6;
+      y+=4;
     }
 
     // ── PREMIUM SUMMARY (no component breakdown — totals only) ───
@@ -3405,16 +3404,16 @@ function gfcBuildPDF(){
       tblRow(pCols,row,7,bg);
       if(isTotal)doc.setFont('helvetica','normal');
     });
-    y+=6;
+    y+=4;
 
     // ── VALIDITY + SIGNATORIES ────────────────────────────────────
-    if(y>H-55){doc.addPage();y=20;}
-    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=6;
+    if(y>H-52){doc.addPage();y=20;}
+    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=4;
     doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...GR);
     doc.text('This quotation is valid for '+(ADM.validDays||30)+' days from the date of issue and is subject to the satisfactory completion of all required documentation. Premiums are reviewed annually.',ML,y,{maxWidth:CW});
-    y+=10;
+    y+=8;
     doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
-    doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);y+=12;
+    doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);y+=10;
 
     if(y>H-22){doc.addPage();y=20;}
     const sigW=CW/3;
