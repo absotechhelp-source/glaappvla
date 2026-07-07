@@ -836,6 +836,10 @@ input,select{min-height:38px}
                       <option value="1500000">MWK 1,500,000</option>
                       <option value="2000000">MWK 2,000,000</option>
                       <option value="3000000">MWK 3,000,000</option>
+                      <option value="4000000">MWK 4,000,000</option>
+                      <option value="5000000">MWK 5,000,000</option>
+                      <option value="6000000">MWK 6,000,000</option>
+                      <option value="8000000">MWK 8,000,000</option>
                       <option value="custom">Custom amount&hellip;</option>
                     </select></div>
                   <div class="fld" id="gfc-ben-custom-wrap" style="display:none">
@@ -2933,7 +2937,7 @@ function gfcShowStep(n){
   }
   if(n===3){
     const ben=document.getElementById('gfc-ben');
-    const knownVals=['500000','750000','1000000','1500000','2000000','3000000'];
+    const knownVals=['500000','750000','1000000','1500000','2000000','3000000','4000000','5000000','6000000','8000000'];
     if(ben){
       if(knownVals.includes(String(Q_GFC.f_mBen))){
         ben.value=String(Q_GFC.f_mBen);
@@ -3017,7 +3021,7 @@ function gfcScopeChange(){
 
 /* ── Tier management ───────────────────────────────── */
 const GFC_TIER_PRESETS=['Executive','Senior Management','Management','Assistant Management','General Staff','Contract Staff'];
-const GFC_BEN_OPTS=[500000,750000,1000000,1500000,2000000,3000000];
+const GFC_BEN_OPTS=[500000,750000,1000000,1500000,2000000,3000000,4000000,5000000,6000000,8000000];
 
 function gfcToggleTiers(){
   const sel=document.getElementById('gfc-use-tiers');
@@ -3864,6 +3868,7 @@ function buildMergedHistory(){
       id:'gas_'+(row.ref||row.savedAt||Math.random()),
       mode:row.mode||'fast',
       source:'gas',
+      product:(String(row.ref||'').indexOf('gfc_')===0)?'gfc':'gla',
       hasFullData:!!row.hasFullData,
       savedAt:row.savedAt,
       q:{company:row.company,ref:row.ref,mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector,prepby:row.prepBy},
@@ -3896,6 +3901,7 @@ async function retroSyncAll(){
     const id='gas_sync_'+(row.ref||row.savedAt||Date.now()+'_'+Math.random());
     const entry={
       id,mode:row.mode||'fast',source:'gas',gasSync:true,
+      product:(String(row.ref||'').indexOf('gfc_')===0)?'gfc':'gla',
       savedAt:row.savedAt||new Date().toISOString(),
       q:{company:row.company,ref:row.ref||'',mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector||'FIN',prepby:row.prepBy||''},
       results:{total_pa:row.annualPremium,total_pm:Math.round(row.annualPremium/12),per_mb:0,rate_pct:0,options:[],gla:0,funeral:0,ci:0,dis:0,ad:0,sp:0,nMem:row.nMembers,avgAge:0,totSal:row.payroll||0},
