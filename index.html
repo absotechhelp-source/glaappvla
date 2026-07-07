@@ -835,8 +835,11 @@ input,select{min-height:38px}
                       <option value="1000000" selected>MWK 1,000,000</option>
                       <option value="1500000">MWK 1,500,000</option>
                       <option value="2000000">MWK 2,000,000</option>
+                      <option value="2500000">MWK 2,500,000</option>
                       <option value="3000000">MWK 3,000,000</option>
+                      <option value="3500000">MWK 3,500,000</option>
                       <option value="4000000">MWK 4,000,000</option>
+                      <option value="4500000">MWK 4,500,000</option>
                       <option value="5000000">MWK 5,000,000</option>
                       <option value="6000000">MWK 6,000,000</option>
                       <option value="8000000">MWK 8,000,000</option>
@@ -2937,7 +2940,7 @@ function gfcShowStep(n){
   }
   if(n===3){
     const ben=document.getElementById('gfc-ben');
-    const knownVals=['500000','750000','1000000','1500000','2000000','3000000','4000000','5000000','6000000','8000000'];
+    const knownVals=['500000','750000','1000000','1500000','2000000','2500000','3000000','3500000','4000000','4500000','5000000','6000000','8000000'];
     if(ben){
       if(knownVals.includes(String(Q_GFC.f_mBen))){
         ben.value=String(Q_GFC.f_mBen);
@@ -3021,7 +3024,7 @@ function gfcScopeChange(){
 
 /* ── Tier management ───────────────────────────────── */
 const GFC_TIER_PRESETS=['Executive','Senior Management','Management','Assistant Management','General Staff','Contract Staff'];
-const GFC_BEN_OPTS=[500000,750000,1000000,1500000,2000000,3000000,4000000,5000000,6000000,8000000];
+const GFC_BEN_OPTS=[500000,750000,1000000,1500000,2000000,2500000,3000000,3500000,4000000,4500000,5000000,6000000,8000000];
 
 function gfcToggleTiers(){
   const sel=document.getElementById('gfc-use-tiers');
@@ -3314,7 +3317,10 @@ function gfcSaveToSheet(){
   const token=getSessionToken();
   if(!gasUrl||!token){showToast('Save requires a GAS connection and active session','error');return;}
   const payload={
-    id:Q_GFC.ref, product:'gfc', mode:GFC_MODE,
+    ref:Q_GFC.ref, product:'gfc', mode:GFC_MODE,
+    prepBy:(CURRENT_USER?.fullName||CURRENT_USER?.name||''),
+    monthly_per_member:GFC_RESULTS.total_monthly/(Q_GFC.n||1),
+    parents_included:(Q_GFC.f_scope==='member_family'&&Q_GFC.f_nPar>0)?'Yes ('+Q_GFC.f_nPar+')':'No',
     company:Q_GFC.company, date:Q_GFC.date, n:Q_GFC.n,
     avg_age:Q_GFC.avg_age, f_scope:Q_GFC.f_scope,
     total_monthly:GFC_RESULTS.total_monthly, total_pa:GFC_RESULTS.total_pa,
