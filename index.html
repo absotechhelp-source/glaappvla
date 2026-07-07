@@ -1606,6 +1606,20 @@ let ADM=(()=>{
   return {..._ADM_FALLBACK, ...ADM_DEF, ...saved};
 })();
 let SAVED_QUOTES=JSON.parse(localStorage.getItem('vla_gla_saved')||'[]');
+// One-time migration: GFC quotes briefly saved under a ghost key
+(function(){
+  try{
+    const ghost=JSON.parse(localStorage.getItem('vla_gla_quotes')||'[]');
+    if(ghost.length){
+      ghost.forEach(function(g){
+        if(!SAVED_QUOTES.some(function(s){return s.id===g.id;}))SAVED_QUOTES.push(g);
+      });
+      SAVED_QUOTES.sort(function(a,b){return new Date(b.savedAt)-new Date(a.savedAt);});
+      localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES.slice(0,200)));
+      localStorage.removeItem('vla_gla_quotes');
+    }
+  }catch(e){}
+})();
 
 const Q={
   company:'',city:'',ref:'',prepby:'',date:'',
@@ -2777,6 +2791,13 @@ const _BS_ICONS={
   gfc:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3C7 3 3 7 3 12h18C21 7 17 3 12 3z" stroke="white" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 12v6.5a2.5 2.5 0 005 0" stroke="white" stroke-width="1.75" stroke-linecap="round"/></svg>',
   gfs:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 13c0 0-4.5-2-4.5-5.5a4.5 4.5 0 019 0C16.5 11 12 13 12 13z" stroke="white" stroke-width="1.75"/><path d="M12 13v7" stroke="white" stroke-width="1.75" stroke-linecap="round"/></svg>',
 };
+
+function getProductBadge(prod,mode){
+  const meta=PRODUCT_META[prod||'gla'];
+  const short=meta?meta.short:'GLA';
+  const modeTxt=mode==='full'?' \u00b7 Full':mode==='fast'?' \u00b7 Fast':'';
+  return '<span class="prod-badge '+(prod||'gla')+'">'+short+modeTxt+'</span>';
+}
 
 function openProductSheet(prod){
   PRODUCT=prod;
@@ -4140,11 +4161,13 @@ function viewGASQuote(id){
     +'<p style="font-size:11px;color:#AAA;margin-top:10px;border-top:1px solid #EAE4DA;padding-top:8px">'
     +'Saved on another device. Click Re-run to reload in the wizard, recalculate, and re-save here.</p>'
     +'</div>';
-  const modal=document.getElementById('modal-overlay');
-  const mb=document.getElementById('modal-body');
+  const modal=document.getElementById('quote-preview-modal');
+  const mb=document.getElementById('qp-content')||modal?.querySelector('.qp-body')||modal?.querySelector('[id*="qp"]');
   if(modal&&mb){
-    mb.innerHTML='<div class="modal-hdr"><h3>Quote Summary</h3></div>'+html;
-    modal.style.display='flex';
+    mb.innerHTML=html;
+    modal.classList.add('open');
+  }else{
+    showToast('Preview unavailable — use Re-run to reload this quote','info',4000);
   }
 }
 
@@ -4395,7 +4418,8 @@ function closeQuotePreview(){document.getElementById('quote-preview-modal').clas
 
 function openQuotePreview(id){
   const sq=SAVED_QUOTES.find(s=>s.id===id)||HISTORY_MERGED.find(s=>s.id===id);
-  if(!sq){alert('Quote not found.');return;}
+  if(!sq){showToast('Quote not found','error');return;}
+  if(sq.product==='gfc'){viewQuoteSummary(id);return;}  // GFC has its own summary layout
   const r=sq.results||{},q=sq.q||{};
   const isPartial=sq.gasSync||sq.source==='gas';
   const totSal=sq.mode==='fast'?+(q.sal||0):(r.totSal||+(q.sal||0));
