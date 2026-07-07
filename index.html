@@ -991,11 +991,8 @@ input,select{min-height:38px}
     <button class="mn-item active" id="mn-home" onclick="showHome();setMobileNav('mn-home')">
       <span class="mn-icon">&#127968;</span>Quotes
     </button>
-    <button class="mn-item" id="mn-fast" onclick="startQuote('fast');setMobileNav('mn-fast')">
-      <span class="mn-icon">&#9889;</span>Fast
-    </button>
-    <button class="mn-item" id="mn-full" onclick="startQuote('full');setMobileNav('mn-full')">
-      <span class="mn-icon">&#128203;</span>Full
+    <button class="mn-item" id="mn-new" onclick="showHome();setMobileNav('mn-home');setTimeout(function(){document.querySelector('.prod-grid')?.scrollIntoView({behavior:'smooth'});},100)">
+      <span class="mn-icon">&#10133;</span>New Quote
     </button>
     <button class="mn-item" id="mn-hist" onclick="showHistory();setMobileNav('mn-hist')">
       <span class="mn-icon">&#128336;</span>History
@@ -3221,6 +3218,7 @@ async function gfcRenderSummary(){
     }
     GFC_RESULTS=data;
     gfcAutoSave();
+    gfcSaveToSheet(true);  // silent auto-save to GFC sheet — dedup by ref on GAS side
     gfcDisplaySummary();
   }catch(err){
     sc.innerHTML='<div class="msg err" style="margin:20px">Error: '+err.message+'</div>';
@@ -3311,16 +3309,17 @@ function gfcAutoSave(){
   }catch(e){}
 }
 
-function gfcSaveToSheet(){
+function gfcSaveToSheet(silent){
   if(!GFC_RESULTS)return;
   const gasUrl=(ADM.gasUrl||'').trim();
   const token=getSessionToken();
-  if(!gasUrl||!token){showToast('Save requires a GAS connection and active session','error');return;}
+  if(!gasUrl||!token){if(!silent)showToast('Save requires a GAS connection and active session','error');return;}
   const payload={
     ref:Q_GFC.ref, product:'gfc', mode:GFC_MODE,
     prepBy:(CURRENT_USER?.fullName||CURRENT_USER?.name||''),
     monthly_per_member:GFC_RESULTS.total_monthly/(Q_GFC.n||1),
     parents_included:(Q_GFC.f_scope==='member_family'&&Q_GFC.f_nPar>0)?'Yes ('+Q_GFC.f_nPar+')':'No',
+    sal_bill:Q_GFC.sal_bill||0,
     company:Q_GFC.company, date:Q_GFC.date, n:Q_GFC.n,
     avg_age:Q_GFC.avg_age, f_scope:Q_GFC.f_scope,
     total_monthly:GFC_RESULTS.total_monthly, total_pa:GFC_RESULTS.total_pa,
@@ -3332,17 +3331,16 @@ function gfcSaveToSheet(){
     .then(function(r){return r.json();})
     .then(function(data){
       if(data.status==='ok'){
-        showToast('GFC quote saved to GFC Quotes sheet ✓','success');
+        if(!silent)showToast(data.updated?'Quote already in sheet — updated in place, no duplicate':'GFC quote saved to GFC Quotes sheet ✓','success');
       } else {
         const msg=data.message||data.error||'Unknown error';
-        if(msg.includes('Unknown action')){
-          showToast('GAS deployment is outdated — please redeploy the latest VLA_GLA_GAS.gs to enable GFC sheet saving.','error',7000);
-        } else {
-          showToast('GAS error: '+msg,'error');
+        if(!silent){
+          if(msg.includes('Unknown action'))showToast('GAS deployment is outdated — please redeploy VLA_GLA_GAS.gs','error',7000);
+          else showToast('GAS error: '+msg,'error');
         }
       }
     })
-    .catch(function(){showToast('Save failed — check GAS connection','error');});
+    .catch(function(){if(!silent)showToast('Save failed — check GAS connection','error');});
 }
 
 /* ─── GFC PDF BUILDER ─────────────────────────────────────────── */
@@ -4793,7 +4791,7 @@ function showView(id){
   const el=document.getElementById(id);
   if(el)el.style.display='block';
   // Sync mobile nav
-  var viewToNav={'view-home':'mn-home','view-history':'mn-hist','view-admin':'mn-admin','view-wizard':'mn-fast','view-wizard-gfc':'mn-home','view-mdb':null};
+  var viewToNav={'view-home':'mn-home','view-history':'mn-hist','view-admin':'mn-admin','view-wizard':'mn-home','view-wizard-gfc':'mn-home','view-mdb':null};
   document.querySelectorAll('.mn-item').forEach(function(b){b.classList.remove('active');});
   var navId=viewToNav[id];
   if(navId){var nb=document.getElementById(navId);if(nb)nb.classList.add('active');}
