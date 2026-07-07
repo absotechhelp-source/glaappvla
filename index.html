@@ -3582,6 +3582,11 @@ function gfcBuildPDF(){
 }
 
 function showHome(){
+  HOME_FILTER='all';
+  // Reset filter tabs to "All" visually
+  document.querySelectorAll('.ftab').forEach(function(t){t.classList.remove('active');});
+  const allTab=document.querySelector('.ftab[onclick*="\'all\'"]');
+  if(allTab)allTab.classList.add('active');
   showView('view-home');
   renderHomeView();
 }
@@ -4796,34 +4801,42 @@ function renderHomeQuotes(){
   const tbody=document.getElementById('home-tbody');
   if(!tbody)return;
   const srch=(document.getElementById('home-search')?.value||'').toLowerCase();
-  let qs=SAVED_QUOTES.filter(function(q){
+  // Use HISTORY_MERGED (local + GAS-synced) when SAVED_QUOTES is sparse
+  const pool=SAVED_QUOTES.length>0?SAVED_QUOTES:(HISTORY_MERGED&&HISTORY_MERGED.length>0?HISTORY_MERGED:SAVED_QUOTES);
+  let qs=pool.filter(function(q){
     if(HOME_FILTER!=='all'&&q.mode!==HOME_FILTER)return false;
     if(srch)return(q.q?.company||'').toLowerCase().includes(srch)||(q.q?.ref||'').toLowerCase().includes(srch);
     return true;
   });
   const shown=qs.slice(0,10);
   tbody.innerHTML=shown.map(function(q){
-    const r=q.results||{};
+    const qr=q.results||{};
     const dt=new Date(q.savedAt).toLocaleDateString('en-GB');
     const prod=q.product||'gla';
     const badge=getProductBadge(prod,q.mode);
-    // Premium: GFC shows monthly (total_monthly), GLA shows annual (totPA or total_pa)
-    const qr=q.results||{};
     const premDisplay=prod==='gfc'
       ?fmt(Math.round(qr.total_monthly||0))+' /mo'
       :fmt(Math.round(qr.totPA||qr.total_pa||0));
+    const isGasOnly=q.source==='gas';
+    const actBtns=isGasOnly
+      ?'<button class="qt-act-btn" onclick="viewGASQuote(\''+q.id+'\')">View</button>'
+        +'<button class="qt-act-btn" onclick="rerunGASQuote(\''+q.id+'\')">Re-run</button>'
+      :'<button class="qt-act-btn" data-pdf="'+q.id+'">PDF</button>'
+        +'<button class="qt-act-btn" data-edit="'+q.id+'">Edit</button>';
     return '<tr class="qt-row" data-id="'+q.id+'">'
       +'<td><div class="qname">'+(q.q?.company||'Unnamed')+'</div><div class="qref">'+(q.q?.ref||'—')+'</div></td>'
       +'<td>'+badge+'</td>'
       +'<td class="qdate">'+dt+'</td>'
       +'<td class="qprem">'+premDisplay+'</td>'
-      +'<td class="qacts"><button class="qt-act-btn" data-pdf="'+q.id+'">PDF</button>'
-        +'<button class="qt-act-btn" data-edit="'+q.id+'">Edit</button></td>'
+      +'<td class="qacts">'+actBtns+'</td>'
       +'</tr>';
   }).join('');
-  // Add click events
+  // Bind click events for local quotes only
   tbody.querySelectorAll('.qt-row').forEach(function(tr){
-    tr.addEventListener('click',function(){viewQuoteSummary(tr.dataset.id);});
+    tr.addEventListener('click',function(e){
+      if(e.target.closest('.qt-act-btn'))return;
+      viewQuoteSummary(tr.dataset.id);
+    });
     const pdfBtn=tr.querySelector('[data-pdf]');
     if(pdfBtn)pdfBtn.addEventListener('click',function(e){e.stopPropagation();historyPDF(pdfBtn.dataset.pdf);});
     const editBtn=tr.querySelector('[data-edit]');
@@ -4831,7 +4844,12 @@ function renderHomeQuotes(){
   });
   const cEl=document.getElementById('home-count');
   if(cEl)cEl.textContent='Showing '+shown.length+' of '+qs.length+' quote'+(qs.length!==1?'s':'');
-  if(!shown.length)tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:#AAA">No quotes yet — generate your first quote.</td></tr>';
+  if(!shown.length){
+    const msg=HOME_FILTER!=='all'
+      ?'No '+HOME_FILTER+' quotes found — <span style="color:#641414;cursor:pointer" onclick="setHomeFilter(null,\'all\')">show all</span>'
+      :'No quotes yet — generate your first quote above.';
+    tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:32px;color:#AAA">'+msg+'</td></tr>';
+  }
 }
 
 
