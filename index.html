@@ -637,6 +637,13 @@ input,select{min-height:38px}
             <!-- STEP 1 -->
             <div class="step on" id="s1">
               <div class="fg">
+                <div class="fld" id="fa-sel-field-gla" style="display:none">
+                  <label>Quote on Behalf of (Financial Advisor)</label>
+                  <select id="q-fa-select" onchange="onFASelect('gla')">
+                    <option value="">&mdash; Myself &mdash;</option>
+                  </select>
+                  <span class="fld-note">Select the FA this quote is being prepared for. Defaults to yourself if left blank.</span>
+                </div>
                 <div class="fld"><label>Scheme / Company Name *</label><input id="q-company" placeholder="e.g. ABC Holdings Group Life Scheme"></div>
                 <div class="fld"><label>Employer / Client Location</label><input id="q-city" placeholder="e.g. ABC Holdings Limited, Blantyre"></div>
                 <div class="fld"><label>Quote Reference</label><input id="q-ref" placeholder="VLA-GLA-2026-001"></div>
@@ -759,6 +766,13 @@ input,select{min-height:38px}
             <!-- GFC STEP 1 — Client Details -->
             <div class="step on" id="gfc-s1">
               <div class="fg">
+                <div class="fld" id="fa-sel-field-gfc" style="display:none">
+                  <label>Quote on Behalf of (Financial Advisor)</label>
+                  <select id="gfc-fa-select" onchange="onFASelect('gfc')">
+                    <option value="">&mdash; Myself &mdash;</option>
+                  </select>
+                  <span class="fld-note">Select the FA this quote is being prepared for. Defaults to yourself if left blank.</span>
+                </div>
                 <div class="fld"><label>Company / Employer Name *</label>
                   <input id="gfc-company" placeholder="e.g. Nacala Logistics Ltd"></div>
                 <div class="fld"><label>Physical Address</label>
@@ -1016,7 +1030,7 @@ input,select{min-height:38px}
       <div class="fld"><label>Username *</label><input id="um-user" placeholder="e.g. C. Khonje"></div>
       <div class="fld"><label>Full Name *</label><input id="um-fullname" placeholder="e.g. Chimwemwe Khonje"></div>
       <div class="fld"><label>Email</label><input id="um-email" type="email" placeholder="e.g. ckhonje@vanguardlifemw.com"></div>
-      <div class="fld"><label>Role</label><select id="um-role"><option value="agent">Agent</option><option value="admin">Admin</option><option value="technical">Technical Services</option></select></div>
+      <div class="fld"><label>Role</label><select id="um-role"><option value="ts">Technical Services</option><option value="fa">Financial Advisor</option><option value="admin">Admin</option></select></div>
       <div class="fld"><label id="um-pwd-lbl">Password *</label><input id="um-pwd" type="password" placeholder="Password"></div>
       <div class="fld"><label>Confirm Password</label><input id="um-pwd2" type="password" placeholder="Repeat password"></div>
     </div>
@@ -1938,11 +1952,10 @@ function buildPDFDoc(){
   // Signatories — disclaimer already on page 1
   y+=4;
   if(y>H-22){doc.addPage();y=20;}
-  const sigW=CW/3;
+  const sigW=CW/2;
   const sigs=[
-    ['Chimwemwe Khonje','Head of Business Development','ckhonje@vanguardlifemw.com'],
-    ['Ken Phoya','Group Business Marketing Manager','kphoya@vanguardlifemw.com'],
-    ['Trish Madimbu','Business Development Officer','tmadimbu@vanguardlifemw.com'],
+    getActingSignatory(Q.acting_fa_snapshot),
+    ['Ken Andrew Phoya','Group Business Marketing Manager','kphoya@vanguardlifemw.com'],
   ];
   doc.setFillColor(...M);doc.rect(ML,y-2,CW,0.5,'F');
   y+=3;
@@ -2634,6 +2647,10 @@ function gasPost(data){
 
 function autoSaveQuote(){
   if(!RESULTS)return;
+  // Snapshot the resolved signatory now, so historical PDFs always show
+  // who the quote was actually prepared for/by — not whoever is logged
+  // in when the PDF gets regenerated later.
+  Q.acting_fa_snapshot=getActingSignatory();
   // Dedup key: company + commDate + mult (or ref if provided)
   const dedupKey=Q.ref?Q.ref.trim():[Q.company,Q.date,Q.mult].filter(Boolean).join('|');
   if(!dedupKey)return;
@@ -2892,7 +2909,9 @@ function startGFCWizard(mode){
   GFC_STEP=1; GFC_RESULTS=null; GFC_COMPUTING=false;
   Q_GFC.date=new Date().toISOString().split('T')[0];
   Q_GFC.ref='gfc_'+Date.now();
+  ACTING_FA=null;
   showView('view-wizard-gfc');
+  loadFADropdown();
   // Update mode badge
   const mb=document.getElementById('gfc-mode-badge');
   if(mb)mb.textContent=GFC_MODE==='full'?'Full Quote':'Fast Quote';
@@ -3296,6 +3315,7 @@ function gfcDisplaySummary(){
 function gfcAutoSave(){
   if(!GFC_RESULTS)return;
   try{
+    Q_GFC.acting_fa_snapshot=getActingSignatory();
     const id=Q_GFC.ref||('gfc_'+Date.now());
     const entry={id,product:'gfc',mode:GFC_MODE,
       q:{...Q_GFC},results:{...GFC_RESULTS},
@@ -3514,11 +3534,10 @@ function gfcBuildPDF(){
     doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);y+=10;
 
     if(y>H-22){doc.addPage();y=20;}
-    const sigW=CW/3;
+    const sigW=CW/2;
     const sigs=[
-      ['Chimwemwe Khonje','Head of Business Development','ckhonje@vanguardlifemw.com'],
-      ['Ken Phoya','Group Business Marketing Manager','kphoya@vanguardlifemw.com'],
-      ['Trish Madimbu','Business Development Officer','tmadimbu@vanguardlifemw.com'],
+      getActingSignatory(q.acting_fa_snapshot),
+      ['Ken Andrew Phoya','Group Business Marketing Manager','kphoya@vanguardlifemw.com'],
     ];
     doc.setFillColor(...M);doc.rect(ML,y-2,CW,0.5,'F');y+=3;
     sigs.forEach(function([nm,title,email],i){
@@ -3620,7 +3639,7 @@ function showHome(){
   renderHomeView();
 }
 function showAdmin(){
-  if(CURRENT_USER&&CURRENT_USER.role==='agent'){
+  if(CURRENT_USER&&CURRENT_USER.role==='fa'){
     alert('Admin Settings require Admin or Technical Services access.');
     showHome();return;
   }
@@ -3638,6 +3657,7 @@ function startQuote(m){
   closeProductSheet();
   PRODUCT='gla';
   MODE=m;STEP=1;MEMBERS=[];RESULTS=null;
+  ACTING_FA=null;
   // reset form state
   Object.assign(Q,{company:'',city:'',ref:'',prepby:'',date:'',n:'',sal:'',age:'',pf:0.17,sec:'FIN',mult:3,inc_funeral:true,f_scope:'member_and_dependants',f_mBen:3000000,f_nCh:2,f_cPct:0.50,f_nPar:0,f_pPct:0.25,inc_ci:true,ci_cap:'100_pct',inc_dis:true,dis_cap:'follow_gla',inc_ad:true,inc_sp:true,sp_pct:0.50,sp_mar:0.50,inc_adb:false,adb_accel_pct:0.20,inc_edu:false,edu_fee_annual:500000,edu_max_children:3,edu_max_years:6,edu_discount_rate:0.15,edu_pct_with_kids:'auto',edu_avg_kids:'auto',disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,coverAll:true,coverRange:'all'});
   // Populate sector dropdown
@@ -3662,6 +3682,7 @@ function startQuote(m){
   // The step items in HTML are id s2-fast and s2-full, both have class 'step'
   // navigation toggles .on on the right one
   showView('view-wizard');
+  loadFADropdown();
   document.getElementById('mode-badge').textContent=m==='fast'?'Fast Quote':'Full Quote';
   // Auto-fill Prepared By with signed-in user details
   if(CURRENT_USER){
@@ -3701,6 +3722,66 @@ document.getElementById('q-n')?.addEventListener('input',updateTierNote);
    is never stored or sent again. See gasCall() below.
 ═══════════════════════════════════════════════════════ */
 let CURRENT_USER=null;
+let ACTING_FA=null;   // {username,fullName,email,role} of the FA this quote is prepared for
+let FA_LIST=[];       // cached list of role==='fa' users
+
+// Populate the "Quote on Behalf of" dropdown for admin/ts users; hidden for FA role.
+async function loadFADropdown(){
+  const canActOnBehalf=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='ts');
+  const glaField=document.getElementById('fa-sel-field-gla');
+  const gfcField=document.getElementById('fa-sel-field-gfc');
+  if(glaField)glaField.style.display=canActOnBehalf?'':'none';
+  if(gfcField)gfcField.style.display=canActOnBehalf?'':'none';
+  if(!canActOnBehalf)return;
+  try{
+    const gasUrl=(ADM.gasUrl||'').trim();
+    const token=getSessionToken();
+    if(!gasUrl||!token)return;
+    const res=await fetch(gasUrl+'?action=getUsers&token='+encodeURIComponent(token));
+    const data=await res.json();
+    if(data.status!=='ok'||!Array.isArray(data.users))return;
+    FA_LIST=data.users.filter(function(u){return u.role==='fa';});
+    const optsHtml='<option value="">— Myself —</option>'
+      +FA_LIST.map(function(u){return '<option value="'+u.username+'">'+u.fullName+'</option>';}).join('');
+    ['q-fa-select','gfc-fa-select'].forEach(function(id){
+      const el=document.getElementById(id);
+      if(el)el.innerHTML=optsHtml;
+    });
+  }catch(e){/* silent — dropdown simply stays at Myself */}
+}
+
+// Returns [name, title, email] for the person the quote is prepared by.
+// If a snapshot was captured at save time (snap), that is authoritative —
+// this keeps historical PDFs showing the FA who owned the quote, not
+// whoever happens to be logged in when the PDF is regenerated later.
+function getActingSignatory(snap){
+  if(Array.isArray(snap)&&snap.length===3&&snap[0])return snap;
+  if(ACTING_FA){
+    return [ACTING_FA.fullName, 'Financial Advisor', ACTING_FA.email||''];
+  }
+  if(CURRENT_USER){
+    const roleTitles={admin:'Administrator',ts:'Technical Services',fa:'Financial Advisor'};
+    return [CURRENT_USER.fullName||CURRENT_USER.name, roleTitles[CURRENT_USER.role]||'Technical Services', CURRENT_USER.email||''];
+  }
+  return ['','',''];
+}
+
+function onFASelect(context){
+  const selId=context==='gfc'?'gfc-fa-select':'q-fa-select';
+  const uname=document.getElementById(selId)?.value||'';
+  const prepById=context==='gfc'?null:'q-prepby'; // GFC has no prepby field
+  if(!uname){
+    ACTING_FA=null;
+    if(prepById){const el=document.getElementById(prepById);if(el&&!el.dataset.userEdited)el.value='';}
+    return;
+  }
+  const fa=FA_LIST.find(function(u){return u.username===uname;});
+  ACTING_FA=fa||null;
+  if(prepById&&fa){
+    const el=document.getElementById(prepById);
+    if(el){el.value=fa.fullName+', Financial Advisor';}
+  }
+}
 let USERS_CACHE=null; // last list fetched from GAS, used by the Manage Users screen
 
 function getSessionToken(){ return localStorage.getItem('vla_gla_token')||''; }
@@ -3767,14 +3848,15 @@ function applyRoleUI(role){
   });
   nonAgent.forEach(function(id){
     var el=document.getElementById(id);
-    if(el)el.style.display=(role==='admin'||role==='technical')?'flex':'none';
+    if(el)el.style.display=(role==='admin'||role==='ts')?'flex':'none';
   });
   
   // Show/hide user badge role indicator
   var ubEl=document.getElementById('user-badge');
   if(ubEl&&CURRENT_USER){
     ubEl.textContent=(CURRENT_USER.fullName||CURRENT_USER.name).toUpperCase();
-    ubEl.title='Role: '+(CURRENT_USER.role||'agent');
+    const roleLabels={admin:'Admin',ts:'Technical Services',fa:'Financial Advisor'};
+    ubEl.title='Role: '+(roleLabels[CURRENT_USER.role]||CURRENT_USER.role||'Technical Services');
   }
 }
 
@@ -3806,7 +3888,7 @@ async function doLogin(){
       const gp=document.getElementById('gas-pill');
       if(gp){gp.textContent='● GAS CONNECTED';gp.classList.add('connected');}
     }
-    applyRoleUI(user.role||'agent');
+    applyRoleUI(user.role||'ts');
     showHome();
     err.style.display='none';
   } else {
@@ -4906,7 +4988,7 @@ window.onload=function(){
       var _gp=document.getElementById('gas-pill');
       if(_gp){_gp.textContent='● GAS CONNECTED';_gp.classList.add('connected');}
     }
-    applyRoleUI(_usr.role||'agent');
+    applyRoleUI(_usr.role||'ts');
     showHome();
   }
   // Ping GAS in background (non-blocking)
@@ -5087,14 +5169,14 @@ function openUMModalFn(editKey){
     document.getElementById('um-user').disabled=true;
     document.getElementById('um-fullname').value=d.fullName||'';
     document.getElementById('um-email').value=d.email||'';
-    document.getElementById('um-role').value=d.role||'agent';
+    document.getElementById('um-role').value=d.role||'ts';
     document.getElementById('um-pwd-lbl').textContent='New Password (blank = keep)';
   } else {
     document.getElementById('um-user').value='';
     document.getElementById('um-user').disabled=false;
     document.getElementById('um-fullname').value='';
     document.getElementById('um-email').value='';
-    document.getElementById('um-role').value='agent';
+    document.getElementById('um-role').value='ts';
     document.getElementById('um-pwd-lbl').textContent='Password *';
   }
   document.getElementById('um-pwd').value='';
