@@ -1031,6 +1031,8 @@ input,select{min-height:38px}
       <div class="fld"><label>Full Name *</label><input id="um-fullname" placeholder="e.g. Chimwemwe Khonje"></div>
       <div class="fld"><label>Email</label><input id="um-email" type="email" placeholder="e.g. ckhonje@vanguardlifemw.com"></div>
       <div class="fld"><label>Role</label><select id="um-role"><option value="ts">Technical Services</option><option value="fa">Financial Advisor</option><option value="admin">Admin</option></select></div>
+      <div class="fld"><label>Title</label><input id="um-title" placeholder="e.g. Senior Financial Advisor">
+        <span class="fld-note">Printed on quote signatures. Leave blank to use a role-based default.</span></div>
       <div class="fld"><label id="um-pwd-lbl">Password *</label><input id="um-pwd" type="password" placeholder="Password"></div>
       <div class="fld"><label>Confirm Password</label><input id="um-pwd2" type="password" placeholder="Repeat password"></div>
     </div>
@@ -1952,11 +1954,13 @@ function buildPDFDoc(){
   // Signatories — disclaimer already on page 1
   y+=4;
   if(y>H-22){doc.addPage();y=20;}
-  const sigW=CW/2;
-  const sigs=[
-    getActingSignatory(Q.acting_fa_snapshot),
-    ['Ken Andrew Phoya','Group Business Marketing Manager','kphoya@vanguardlifemw.com'],
-  ];
+  const KEN_EMAIL='kphoya@vanguardlifemw.com';
+  const actingSig=getActingSignatory(Q.acting_fa_snapshot);
+  const isKenActing=(actingSig[2]||'').toLowerCase()===KEN_EMAIL;
+  const sigs=isKenActing
+    ?[actingSig]
+    :[actingSig,['Ken Andrew Phoya','Group Business Marketing Manager',KEN_EMAIL]];
+  const sigW=CW/sigs.length;
   doc.setFillColor(...M);doc.rect(ML,y-2,CW,0.5,'F');
   y+=3;
   sigs.forEach(([name,title,email],i)=>{
@@ -3534,11 +3538,13 @@ function gfcBuildPDF(){
     doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);y+=10;
 
     if(y>H-22){doc.addPage();y=20;}
-    const sigW=CW/2;
-    const sigs=[
-      getActingSignatory(q.acting_fa_snapshot),
-      ['Ken Andrew Phoya','Group Business Marketing Manager','kphoya@vanguardlifemw.com'],
-    ];
+    const KEN_EMAIL='kphoya@vanguardlifemw.com';
+    const actingSig=getActingSignatory(q.acting_fa_snapshot);
+    const isKenActing=(actingSig[2]||'').toLowerCase()===KEN_EMAIL;
+    const sigs=isKenActing
+      ?[actingSig]
+      :[actingSig,['Ken Andrew Phoya','Group Business Marketing Manager',KEN_EMAIL]];
+    const sigW=CW/sigs.length;
     doc.setFillColor(...M);doc.rect(ML,y-2,CW,0.5,'F');y+=3;
     sigs.forEach(function([nm,title,email],i){
       const sx=ML+i*sigW;
@@ -3757,11 +3763,11 @@ async function loadFADropdown(){
 function getActingSignatory(snap){
   if(Array.isArray(snap)&&snap.length===3&&snap[0])return snap;
   if(ACTING_FA){
-    return [ACTING_FA.fullName, 'Financial Advisor', ACTING_FA.email||''];
+    return [ACTING_FA.fullName, ACTING_FA.title||'Financial Advisor', ACTING_FA.email||''];
   }
   if(CURRENT_USER){
     const roleTitles={admin:'Administrator',ts:'Technical Services',fa:'Financial Advisor'};
-    return [CURRENT_USER.fullName||CURRENT_USER.name, roleTitles[CURRENT_USER.role]||'Technical Services', CURRENT_USER.email||''];
+    return [CURRENT_USER.fullName||CURRENT_USER.name, CURRENT_USER.title||roleTitles[CURRENT_USER.role]||'Technical Services', CURRENT_USER.email||''];
   }
   return ['','',''];
 }
@@ -3875,7 +3881,7 @@ async function doLogin(){
     const user=res.user;
     setSessionToken(res.token);
     document.getElementById('login-pass').value=''; // password never lingers, in memory or DOM
-    CURRENT_USER={name:user.username,role:user.role,fullName:user.fullName||user.username,email:user.email||''};
+    CURRENT_USER={name:user.username,role:user.role,fullName:user.fullName||user.username,email:user.email||'',title:user.title||''};
     localStorage.setItem('vla_gla_user',JSON.stringify(CURRENT_USER)); // persist so refresh keeps session
     // Switch screens
     document.getElementById('login-screen').style.display='none';
@@ -4652,6 +4658,7 @@ async function saveUMModal(){
   const fullName=document.getElementById('um-fullname').value.trim();
   const email=document.getElementById('um-email').value.trim();
   const role=document.getElementById('um-role').value;
+  const title=document.getElementById('um-title').value.trim();
   const pwd=document.getElementById('um-pwd').value;
   const pwd2=document.getElementById('um-pwd2').value;
   const showE=m=>{errEl.textContent=m;errEl.style.display='block';};
@@ -4662,7 +4669,7 @@ async function saveUMModal(){
   if(pwd&&pwd!==pwd2)return showE('Passwords do not match');
   const saveBtn=document.querySelector('#um-modal .btn.primary,#um-modal button[onclick="saveUMModal()"]');
   if(saveBtn)saveBtn.disabled=true;
-  const params={username:uname,fullName,email,role};
+  const params={username:uname,fullName,email,role,title};
   if(editKey)params.editKey=editKey;
   if(pwd)params.password=pwd;
   const res=await gasAuthCall('saveUser',params);
@@ -5170,6 +5177,7 @@ function openUMModalFn(editKey){
     document.getElementById('um-fullname').value=d.fullName||'';
     document.getElementById('um-email').value=d.email||'';
     document.getElementById('um-role').value=d.role||'ts';
+    document.getElementById('um-title').value=d.title||'';
     document.getElementById('um-pwd-lbl').textContent='New Password (blank = keep)';
   } else {
     document.getElementById('um-user').value='';
@@ -5177,6 +5185,7 @@ function openUMModalFn(editKey){
     document.getElementById('um-fullname').value='';
     document.getElementById('um-email').value='';
     document.getElementById('um-role').value='ts';
+    document.getElementById('um-title').value='';
     document.getElementById('um-pwd-lbl').textContent='Password *';
   }
   document.getElementById('um-pwd').value='';
