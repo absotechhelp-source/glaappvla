@@ -995,13 +995,22 @@ input,select{min-height:38px}
               <div class="fg">
                 <div class="fld">
                   <label>Package for This Quote *</label>
-                  <select id="gfs-package-tier">
+                  <select id="gfs-package-tier" onchange="gfsToggleCustomCover()">
                     <option value="std">Standard</option>
                     <option value="exe" selected>Executive</option>
                     <option value="vip">VIP</option>
                     <option value="all">Compare All Three</option>
+                    <option value="custom">Custom Cover Options (Cash-in-Lieu)</option>
                   </select>
-                  <span class="fld-note">The selected package becomes the headline premium in the summary and PDF. "Compare All Three" shows a side-by-side table with no single headline.</span>
+                  <span class="fld-note">The selected package becomes the headline premium in the summary and PDF. "Compare All Three" shows a side-by-side table with no single headline. "Custom Cover Options" prices specific cash cover amounts instead of a fixed package.</span>
+                </div>
+                <div class="fld" id="gfs-custom-cover-wrap" style="display:none;padding:10px;background:#FBF7F6;border:1px solid #E8CECE;border-radius:8px">
+                  <label>Corporate Cover Amounts (MWK, comma-separated)</label>
+                  <input id="gfs-custom-corp" placeholder="e.g. 4000000,5000000" value="4000000,5000000">
+                  <span class="fld-note">Priced for both Family and Single Adult structures at each amount, using the existing Optional Cash Benefit rate.</span>
+                  <label style="margin-top:8px">Dependent Cover Amounts (MWK, comma-separated)</label>
+                  <input id="gfs-custom-dep" placeholder="e.g. 1000000,2000000" value="1000000,2000000">
+                  <span class="fld-note">Transport costs are embedded in the cover amount — no separate transport line applies.</span>
                 </div>
                 <div class="fld">
                   <label><input type="checkbox" id="gfs-inc-cash" style="width:auto;margin-right:8px;vertical-align:middle" onchange="gfsToggleCash()">Include Optional Cash Benefit</label>
@@ -3892,6 +3901,7 @@ let Q_GFS={
   inc_cash:false,inc_transport:false,
   sal_bill:0,loading:0,
   package_tier:'exe', rate_card_only:false,
+  custom_corp_covers:[4000000,5000000], custom_dep_covers:[1000000,2000000],
 };
 let GFS_STEP=1, GFS_RESULTS=null, GFS_COMPUTING=false;
 const GFS_STEP_TITLES=['Client Details','Membership Composition','Package Options','Quote Summary'];
@@ -3937,6 +3947,9 @@ function gfsShowStep(n){
   }
   if(n===3){
     setV('gfs-package-tier',Q_GFS.package_tier);
+    setV('gfs-custom-corp',Q_GFS.custom_corp_covers.join(','));
+    setV('gfs-custom-dep',Q_GFS.custom_dep_covers.join(','));
+    gfsToggleCustomCover();
     const cb=document.getElementById('gfs-inc-cash');
     if(cb)cb.checked=Q_GFS.inc_cash;
     const tb=document.getElementById('gfs-inc-transport');
@@ -3961,6 +3974,12 @@ function gfsToggleRateCard(){
   const rc=document.getElementById('gfs-rate-card-only');
   const on=!!(rc&&rc.checked);
   document.getElementById('gfs-membership-fields').style.display=on?'none':'';
+}
+
+function gfsToggleCustomCover(){
+  const sel=document.getElementById('gfs-package-tier');
+  const isCustom=sel&&sel.value==='custom';
+  document.getElementById('gfs-custom-cover-wrap').style.display=isCustom?'':'none';
 }
 
 function gfsToggleCash(){
@@ -4006,6 +4025,14 @@ function gfsValidateStep(n){
   }
   if(n===3){
     Q_GFS.package_tier=document.getElementById('gfs-package-tier')?.value||'exe';
+    if(Q_GFS.package_tier==='custom'){
+      const parseCovers=(str)=>str.split(',').map(s=>parseFloat(s.trim())).filter(n=>!isNaN(n)&&n>0);
+      const corp=parseCovers(document.getElementById('gfs-custom-corp')?.value||'');
+      const dep=parseCovers(document.getElementById('gfs-custom-dep')?.value||'');
+      if(corp.length===0&&dep.length===0){gfsShowErr('gfs-s3-err','Enter at least one corporate or dependent cover amount');return false;}
+      Q_GFS.custom_corp_covers=corp;
+      Q_GFS.custom_dep_covers=dep;
+    }
     Q_GFS.inc_cash=!!document.getElementById('gfs-inc-cash')?.checked;
     Q_GFS.inc_transport=!!document.getElementById('gfs-inc-transport')?.checked;
     Q_GFS.sal_bill=parseFloat(document.getElementById('gfs-sal-bill')?.value)||0;
@@ -4046,6 +4073,8 @@ async function gfsRenderSummary(){
       n_single:Q_GFS.n_single, n_family:Q_GFS.n_family, n_extra_ch:Q_GFS.n_extra_ch,
       n_dep_u70:Q_GFS.n_dep_u70, n_dep_o70:Q_GFS.n_dep_o70,
       inc_cash:Q_GFS.inc_cash, inc_transport:Q_GFS.inc_transport,
+      custom_corp_covers:Q_GFS.package_tier==='custom'?Q_GFS.custom_corp_covers:[],
+      custom_dep_covers:Q_GFS.package_tier==='custom'?Q_GFS.custom_dep_covers:[],
     }));
     let url=gasUrl+'?action=calcGFS&q='+qEnc+(token?'&token='+encodeURIComponent(token):'');
     if(CURRENT_USER?.role==='admin'){
@@ -4065,6 +4094,10 @@ async function gfsRenderSummary(){
       });
       data.total_pa=data.tiers.exe.annual_gross;
       data.loading_applied=Q_GFS.loading;
+      if(data.custom_cover_options){
+        (data.custom_cover_options.corporate||[]).forEach(function(o){o.family_monthly*=factor;o.single_monthly*=factor;});
+        (data.custom_cover_options.dependent||[]).forEach(function(o){o.monthly*=factor;});
+      }
     }
     GFS_RESULTS=data;
     Q_GFS.acting_fa_snapshot=getActingSignatory();
@@ -4115,6 +4148,34 @@ function gfsDisplaySummary(){
       +'<div class="sum-sec"><div class="sum-lbl">MONTHLY RATE PER MEMBER TYPE (MWK)</div>'
       +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>Package</span><span>Single</span><span>Family</span><span>Child</span><span>Dep.&le;70</span></div>'
       +rcRows
+      +'</div>';
+  } else if(selTier==='custom'){
+    // ── CUSTOM COVER OPTIONS — cash-in-lieu at specific cover amounts ──
+    const cco=r.custom_cover_options||{corporate:[],dependent:[]};
+    const corpRows=(cco.corporate||[]).map(function(o){
+      return '<div class="sum-tier-row" style="grid-template-columns:1fr 1fr 1fr"><span>MWK '+fmt(o.cover)+'</span>'
+        +'<span>'+fmt(Math.round(o.family_monthly))+'/mo</span>'
+        +'<span>'+fmt(Math.round(o.single_monthly))+'/mo</span></div>';
+    }).join('');
+    const depRows=(cco.dependent||[]).map(function(o){
+      return '<div class="sum-row"><span>MWK '+fmt(o.cover)+' cover</span><span>'+fmt(Math.round(o.monthly))+'/mo</span></div>';
+    }).join('');
+    body=
+      '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
+      +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
+      +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFS.date+'</span></div>'
+      +'<div class="sum-row"><span>Quote Type</span><span>Custom Cover Options (Cash-in-Lieu)</span></div>'
+      +(Q_GFS.loading&&Q_GFS.loading!==0?'<div class="sum-row" style="border-top:1px dashed #EAE4DA;margin-top:4px;padding-top:4px"><span style="font-size:10.5px;color:#AAA">Int: Premium Adjustment</span><span style="color:'+(Q_GFS.loading>0?'#B44':'#1D6A45')+';font-size:11px">'+(Q_GFS.loading>0?'+':'')+Q_GFS.loading+'%</span></div>':'')
+      +'</div>'
+      +'<div class="sum-sec"><div class="sum-lbl">CORPORATE COVER OPTIONS</div>'
+      +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 1fr 1fr"><span>Cover Amount</span><span>Family Structure</span><span>Single Adult</span></div>'
+      +(corpRows||'<div class="sum-row"><span>No corporate cover amounts entered</span></div>')
+      +'</div>'
+      +'<div class="sum-sec"><div class="sum-lbl">DEPENDENT COVER OPTIONS</div>'
+      +(depRows||'<div class="sum-row"><span>No dependent cover amounts entered</span></div>')
+      +'</div>'
+      +'<div class="sum-sec" style="background:#FBF7F6;border-color:#E8CECE">'
+      +'<p style="font-size:10.5px;color:#888;line-height:1.5;margin:0">Transport costs are embedded in the cover amount — no separate transport line applies. Premiums shown are indicative, derived from the published Optional Cash Benefit rate, pending final actuarial confirmation.</p>'
       +'</div>';
   } else {
     // ── STANDARD MODE — computed premium for the group ──
@@ -4298,7 +4359,7 @@ function gfsBuildPDF(){
       y+=4;
 
       tblHdr([{label:'MONTHLY RATE PER MEMBER TYPE (MWK)',w:CW}]);
-      const rcCols=[{key:'name',w:38,label:'Package'},{key:'single',w:(CW-38)/4,label:'Single Adult',r:true},{key:'family',w:(CW-38)/4,label:'Family',r:true},{key:'child',w:(CW-38)/4,label:'Add\'l Child',r:true},{key:'dep70',w:CW-38-3*((CW-38)/4),label:'Dependant \u226470',r:true}];
+      const rcCols=[{key:'name',w:38,label:'Package'},{key:'single',w:(CW-38)/4,label:'Single Adult',r:true},{key:'family',w:(CW-38)/4,label:'Family',r:true},{key:'child',w:(CW-38)/4,label:'Add\'l Child',r:true},{key:'dep70',w:CW-38-3*((CW-38)/4),label:'Dependant (up to 70)',r:true}];
       colHdr(rcCols);
       ['std','exe','vip'].forEach(function(tk,i){
         const c=(r.rate_card||{})[tk]||{};
@@ -4318,9 +4379,76 @@ function gfsBuildPDF(){
         y+=4;
       }
 
+      // ── SERVICE BENEFIT SCHEDULE (per package tier) ────────────
+      if(y>H-100){doc.addPage();y=20;}
+      tblHdr([{label:'FUNERAL SERVICE BENEFITS BY PACKAGE',w:CW}]);
+      const bCols=[{key:'item',w:CW*0.34,label:'Benefit'},{key:'std',w:CW*0.22,label:'Standard'},{key:'exe',w:CW*0.22,label:'Executive'},{key:'vip',w:CW-CW*0.34-CW*0.22-CW*0.22,label:'VIP'}];
+      colHdr(bCols);
+      const benefitSchedule=[
+        {item:'Coffin/Casket Type', std:'Coffin', exe:'Casket', vip:'Dome Casket'},
+        {item:'Cross', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Wreath (Quantity)', std:'Two', exe:'Four', vip:'Five'},
+        {item:'Hospital Removal', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Mortuary (Body Storage)', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Chapel Usage', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Embalming', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:"Undertaker's Fee", std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Documentation', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Consultation', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Hearse Hire (National)', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Equipment Hire', std:'Lowering Machine + 2 Tents', exe:'Lowering Machine, 4 Tents, Chairs, PA & Decor', vip:'Lowering Machine, 4 Tents, Chairs, PA & Decor'},
+        {item:'Groceries & Airtime (MWK)', std:'250,000', exe:'350,000', vip:'600,000'},
+      ];
+      benefitSchedule.forEach(function(row,i){tblRow(bCols,row,7,i%2===0?[255,255,255]:[248,245,241]);});
+      y+=4;
+
+      // ── CASH IN LIEU OF SERVICES ────────────────────────────────
+      if(y>H-60){doc.addPage();y=20;}
+      tblHdr([{label:'CASH IN LIEU OF SERVICES (MWK)',w:CW}]);
+      const lCols=[{key:'item',w:CW*0.4},{key:'std',w:CW*0.2,r:true},{key:'exe',w:CW*0.2,r:true},{key:'vip',w:CW-CW*0.4-CW*0.2-CW*0.2,r:true}];
+      const lHdrCols=[{key:'item',w:CW*0.4,label:''},{key:'std',w:CW*0.2,label:'Standard',r:true},{key:'exe',w:CW*0.2,label:'Executive',r:true},{key:'vip',w:CW-CW*0.4-CW*0.2-CW*0.2,label:'VIP',r:true}];
+      colHdr(lHdrCols);
+      const rc0=r.rate_card||{};
+      tblRow(lCols,{item:'Services Only',std:f2(rc0.std?.lieu_services),exe:f2(rc0.exe?.lieu_services),vip:f2(rc0.vip?.lieu_services)},7,[255,255,255]);
+      tblRow(lCols,{item:'Services + Mourners Transport',std:f2(rc0.std?.lieu_transport),exe:f2(rc0.exe?.lieu_transport),vip:f2(rc0.vip?.lieu_transport)},7,[248,245,241]);
+      y+=4;
+
       doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(...GR);
       doc.text('Rates shown are per member per month for each package tier. A computed group premium can be issued once membership numbers are confirmed.',ML,y+3,{maxWidth:CW});
       y+=10;
+
+    } else if((q.package_tier||'exe')==='custom'){
+      // ── CUSTOM COVER OPTIONS MODE ─────────────────────────────────
+      tblHdr([{label:'SCHEME DETAILS',w:CW}]);
+      [{lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
+       {lbl:'Quote Type', val:'Custom Cover Options (Cash-in-Lieu)'},
+       {lbl:'Commencement Date', val:dtStr},
+      ].forEach(function(row,i){
+        tblRow([{key:'lbl',w:75},{key:'val',w:CW-75}],row,7,i%2===0?[255,255,255]:[248,245,241]);
+      });
+      y+=4;
+
+      const cco=r.custom_cover_options||{corporate:[],dependent:[]};
+
+      tblHdr([{label:'CORPORATE COVER OPTIONS',w:CW}]);
+      const ccCols=[{key:'cover',w:CW*0.34,label:'Cover Amount (MWK)'},{key:'fam',w:CW*0.33,label:'Family Structure (MWK/mo)',r:true},{key:'sgl',w:CW-CW*0.34-CW*0.33,label:'Single Adult (MWK/mo)',r:true}];
+      colHdr(ccCols);
+      (cco.corporate||[]).forEach(function(o,i){
+        tblRow(ccCols,{cover:f2(o.cover),fam:f2(o.family_monthly),sgl:f2(o.single_monthly)},7,i%2===0?[255,255,255]:[248,245,241]);
+      });
+      y+=4;
+
+      tblHdr([{label:'DEPENDENT COVER OPTIONS',w:CW}]);
+      const dcCols=[{key:'cover',w:CW*0.6,label:'Cover Amount (MWK)'},{key:'mo',w:CW-CW*0.6,label:'Monthly Premium (MWK)',r:true}];
+      colHdr(dcCols);
+      (cco.dependent||[]).forEach(function(o,i){
+        tblRow(dcCols,{cover:f2(o.cover),mo:f2(o.monthly)},7,i%2===0?[255,255,255]:[248,245,241]);
+      });
+      y+=6;
+
+      doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(...GR);
+      doc.text('Transport costs are embedded in the cover amount shown above — no separate transport allowance applies. Premiums are indicative, derived from the published Optional Cash Benefit rate, and subject to final actuarial confirmation.',ML,y+3,{maxWidth:CW});
+      y+=14;
 
     } else {
       // ── COMPUTED GROUP QUOTE MODE ────────────────────────────────
@@ -4356,6 +4484,39 @@ function gfsBuildPDF(){
         doc.text('A cash benefit of MWK '+f2(r.tiers.exe.cash_benefit||1000000)+' is included alongside the service benefit, payable directly to the family in addition to funeral service provision.',ML,y+4,{maxWidth:CW-6});
         y+=12;
       }
+
+      // ── SERVICE BENEFIT SCHEDULE (per package tier) ────────────
+      if(y>H-100){doc.addPage();y=20;}
+      tblHdr([{label:'FUNERAL SERVICE BENEFITS BY PACKAGE',w:CW}]);
+      const bCols=[{key:'item',w:CW*0.34,label:'Benefit'},{key:'std',w:CW*0.22,label:'Standard'},{key:'exe',w:CW*0.22,label:'Executive'},{key:'vip',w:CW-CW*0.34-CW*0.22-CW*0.22,label:'VIP'}];
+      colHdr(bCols);
+      const benefitSchedule=[
+        {item:'Coffin/Casket Type', std:'Coffin', exe:'Casket', vip:'Dome Casket'},
+        {item:'Cross', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Wreath (Quantity)', std:'Two', exe:'Four', vip:'Five'},
+        {item:'Hospital Removal', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Mortuary (Body Storage)', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Chapel Usage', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Embalming', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:"Undertaker's Fee", std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Documentation', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Consultation', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Hearse Hire (National)', std:'Yes', exe:'Yes', vip:'Yes'},
+        {item:'Equipment Hire', std:'Lowering Machine + 2 Tents', exe:'Lowering Machine, 4 Tents, Chairs, PA & Decor', vip:'Lowering Machine, 4 Tents, Chairs, PA & Decor'},
+        {item:'Groceries & Airtime (MWK)', std:'250,000', exe:'350,000', vip:'600,000'},
+      ];
+      benefitSchedule.forEach(function(row,i){tblRow(bCols,row,7,i%2===0?[255,255,255]:[248,245,241]);});
+      y+=4;
+
+      // ── CASH IN LIEU OF SERVICES ────────────────────────────────
+      if(y>H-60){doc.addPage();y=20;}
+      tblHdr([{label:'CASH IN LIEU OF SERVICES (MWK)',w:CW}]);
+      const lCols=[{key:'item',w:CW*0.4},{key:'std',w:CW*0.2,r:true},{key:'exe',w:CW*0.2,r:true},{key:'vip',w:CW-CW*0.4-CW*0.2-CW*0.2,r:true}];
+      const lHdrCols=[{key:'item',w:CW*0.4,label:''},{key:'std',w:CW*0.2,label:'Standard',r:true},{key:'exe',w:CW*0.2,label:'Executive',r:true},{key:'vip',w:CW-CW*0.4-CW*0.2-CW*0.2,label:'VIP',r:true}];
+      colHdr(lHdrCols);
+      tblRow(lCols,{item:'Services Only',std:f2(r.tiers.std?.lieu_services),exe:f2(r.tiers.exe?.lieu_services),vip:f2(r.tiers.vip?.lieu_services)},7,[255,255,255]);
+      tblRow(lCols,{item:'Services + Mourners Transport',std:f2(r.tiers.std?.lieu_transport),exe:f2(r.tiers.exe?.lieu_transport),vip:f2(r.tiers.vip?.lieu_transport)},7,[248,245,241]);
+      y+=4;
 
       // ── PREMIUM SUMMARY (selected tier as headline; omitted when comparing all three) ──
       if(selTier!=='all'){
