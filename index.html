@@ -968,6 +968,12 @@ input,select{min-height:38px}
             <!-- GFS STEP 2 — Membership Composition -->
             <div class="step" id="gfs-s2">
               <div class="fg">
+                <div class="fld">
+                  <label><input type="checkbox" id="gfs-rate-card-only" style="width:auto;margin-right:8px;vertical-align:middle" onchange="gfsToggleRateCard()">Client hasn't provided member numbers &mdash; show package rate card only</label>
+                  <span class="fld-note">Generates a generic pricing table (rate per Single Adult, Family, Child, and Dependant) for each package, without computing a total premium for a specific group.</span>
+                </div>
+              </div>
+              <div class="fg" id="gfs-membership-fields">
                 <div class="fld"><label>Single Adult Members *</label>
                   <input id="gfs-n-single" type="number" min="0" value="0">
                   <span class="fld-note">Member + up to 4 children included in the package</span></div>
@@ -987,6 +993,16 @@ input,select{min-height:38px}
             <!-- GFS STEP 3 — Package Options -->
             <div class="step" id="gfs-s3">
               <div class="fg">
+                <div class="fld">
+                  <label>Package for This Quote *</label>
+                  <select id="gfs-package-tier">
+                    <option value="std">Standard</option>
+                    <option value="exe" selected>Executive</option>
+                    <option value="vip">VIP</option>
+                    <option value="all">Compare All Three</option>
+                  </select>
+                  <span class="fld-note">The selected package becomes the headline premium in the summary and PDF. "Compare All Three" shows a side-by-side table with no single headline.</span>
+                </div>
                 <div class="fld">
                   <label><input type="checkbox" id="gfs-inc-cash" style="width:auto;margin-right:8px;vertical-align:middle" onchange="gfsToggleCash()">Include Optional Cash Benefit</label>
                   <span class="fld-note">Adds a fixed cash payout (MWK 1,000,000) alongside the funeral service, for an additional premium.</span>
@@ -3631,7 +3647,7 @@ function gfcBuildPDF(){
       doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(100,50,50);
       let cx=ML+3;
       cols.forEach(function(col){
-        if(col.r)doc.text(col.label,ML+CW-3,y+4,{align:'right'});
+        if(col.r)doc.text(col.label,cx+col.w-3,y+4,{align:'right'});
         else doc.text(col.label,cx,y+4);
         cx+=col.w;
       });
@@ -3643,7 +3659,7 @@ function gfcBuildPDF(){
       let cx=ML+3;
       cols.forEach(function(col){
         const txt=String(row[col.key]||'');
-        if(col.r)doc.text(txt,ML+CW-3,y+rh-2,{align:'right'});
+        if(col.r)doc.text(txt,cx+col.w-3,y+rh-2,{align:'right'});
         else doc.text(doc.splitTextToSize(txt,col.w-5)[0],cx,y+rh-2);
         cx+=col.w;
       });
@@ -3875,6 +3891,7 @@ let Q_GFS={
   n_single:0,n_family:0,n_extra_ch:0,n_dep_u70:0,n_dep_o70:0,
   inc_cash:false,inc_transport:false,
   sal_bill:0,loading:0,
+  package_tier:'exe', rate_card_only:false,
 };
 let GFS_STEP=1, GFS_RESULTS=null, GFS_COMPUTING=false;
 const GFS_STEP_TITLES=['Client Details','Membership Composition','Package Options','Quote Summary'];
@@ -3911,11 +3928,15 @@ function gfsShowStep(n){
     setV('gfs-city',Q_GFS.city);setV('gfs-date',Q_GFS.date);setV('gfs-ref',Q_GFS.ref);
   }
   if(n===2){
+    const rc=document.getElementById('gfs-rate-card-only');
+    if(rc)rc.checked=Q_GFS.rate_card_only;
+    document.getElementById('gfs-membership-fields').style.display=Q_GFS.rate_card_only?'none':'';
     setV('gfs-n-single',Q_GFS.n_single);setV('gfs-n-family',Q_GFS.n_family);
     setV('gfs-n-extra-ch',Q_GFS.n_extra_ch);
     setV('gfs-n-dep-u70',Q_GFS.n_dep_u70);setV('gfs-n-dep-o70',Q_GFS.n_dep_o70);
   }
   if(n===3){
+    setV('gfs-package-tier',Q_GFS.package_tier);
     const cb=document.getElementById('gfs-inc-cash');
     if(cb)cb.checked=Q_GFS.inc_cash;
     const tb=document.getElementById('gfs-inc-transport');
@@ -3934,6 +3955,12 @@ function gfsShowStep(n){
   }
   const v=document.getElementById('view-wizard-gfs');
   if(v)v.scrollTop=0;
+}
+
+function gfsToggleRateCard(){
+  const rc=document.getElementById('gfs-rate-card-only');
+  const on=!!(rc&&rc.checked);
+  document.getElementById('gfs-membership-fields').style.display=on?'none':'';
 }
 
 function gfsToggleCash(){
@@ -3959,6 +3986,14 @@ function gfsValidateStep(n){
     return true;
   }
   if(n===2){
+    Q_GFS.rate_card_only=!!document.getElementById('gfs-rate-card-only')?.checked;
+    if(Q_GFS.rate_card_only){
+      // Rate-card mode: membership figures are irrelevant to the quote
+      gfsClearErr('gfs-s2-err');
+      Q_GFS.n_single=0; Q_GFS.n_family=0; Q_GFS.n_extra_ch=0;
+      Q_GFS.n_dep_u70=0; Q_GFS.n_dep_o70=0;
+      return true;
+    }
     const nS=parseInt(document.getElementById('gfs-n-single')?.value)||0;
     const nF=parseInt(document.getElementById('gfs-n-family')?.value)||0;
     if(nS+nF<1){gfsShowErr('gfs-s2-err','At least one Single Adult or Family member is required');return false;}
@@ -3970,6 +4005,7 @@ function gfsValidateStep(n){
     return true;
   }
   if(n===3){
+    Q_GFS.package_tier=document.getElementById('gfs-package-tier')?.value||'exe';
     Q_GFS.inc_cash=!!document.getElementById('gfs-inc-cash')?.checked;
     Q_GFS.inc_transport=!!document.getElementById('gfs-inc-transport')?.checked;
     Q_GFS.sal_bill=parseFloat(document.getElementById('gfs-sal-bill')?.value)||0;
@@ -4048,29 +4084,69 @@ function gfsDisplaySummary(){
   if(!sc)return;
   const salBill=Q_GFS.sal_bill||0;
   const tiers=r.tiers||{};
+  const tierLabel={std:'Standard',exe:'Executive',vip:'VIP'};
+  const selTier=Q_GFS.package_tier||'exe';
+
   const tierRows=['std','exe','vip'].map(function(tk){
     const t=tiers[tk]||{};
-    const label=tk==='std'?'Standard':tk==='exe'?'Executive':'VIP';
-    return '<div class="sum-tier-row'+(tk==='exe'?' hi':'')+'"><span>'+label+'</span><span>'+fmt(Math.round(t.monthly_gross||0))+'</span><span>'+fmt(Math.round(t.annual_gross||0))+'</span><span>'+fmt(Math.round(t.per_member_monthly||0))+'</span></div>';
+    const isSel=(selTier===tk);
+    return '<div class="sum-tier-row'+(isSel?' hi':'')+'"><span>'+tierLabel[tk]+(isSel?' &#10003;':'')+'</span><span>'+fmt(Math.round(t.monthly_gross||0))+'</span><span>'+fmt(Math.round(t.annual_gross||0))+'</span><span>'+fmt(Math.round(t.per_member_monthly||0))+'</span></div>';
   }).join('');
 
-  sc.innerHTML=
-    '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
-    +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
-    +'<div class="sum-row"><span>Single Adult / Family Members</span><span>'+fmt(Q_GFS.n_single)+' / '+fmt(Q_GFS.n_family)+'</span></div>'
-    +'<div class="sum-row"><span>Additional Children</span><span>'+fmt(Q_GFS.n_extra_ch)+'</span></div>'
-    +'<div class="sum-row"><span>Dependants (&le;70 / 71&ndash;80)</span><span>'+fmt(Q_GFS.n_dep_u70)+' / '+fmt(Q_GFS.n_dep_o70)+'</span></div>'
-    +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFS.date+'</span></div>'
-    +'<div class="sum-row"><span>Optional Cash Benefit</span><span>'+(Q_GFS.inc_cash?'Included':'Not included')+'</span></div>'
-    +(Q_GFS.loading&&Q_GFS.loading!==0?'<div class="sum-row" style="border-top:1px dashed #EAE4DA;margin-top:4px;padding-top:4px"><span style="font-size:10.5px;color:#AAA">Int: Premium Adjustment</span><span style="color:'+(Q_GFS.loading>0?'#B44':'#1D6A45')+';font-size:11px">'+(Q_GFS.loading>0?'+':'')+Q_GFS.loading+'%</span></div>':'')
-    +'</div>'
-    +'<div class="sum-sec"><div class="sum-lbl">PACKAGE COMPARISON</div>'
-    +'<div class="sum-tier-row hdr"><span>Package</span><span>Monthly</span><span>Annual</span><span>Per Member/mo</span></div>'
-    +tierRows
-    +'</div>'
-    +(salBill>0?'<div class="sum-sec"><div class="sum-lbl">AFFORDABILITY</div>'
-      +'<div class="sum-row"><span>Executive as % of Salary Bill</span><span>'+((tiers.exe?.annual_gross||0)/salBill*100).toFixed(3)+'%</span></div>'
-      +'</div>':'')
+  let body='';
+
+  if(Q_GFS.rate_card_only){
+    // ── RATE CARD MODE — generic per-unit pricing, no computed total ──
+    const rc=r.rate_card||{};
+    const rcRows=['std','exe','vip'].map(function(tk){
+      const c=rc[tk]||{};
+      return '<div class="sum-tier-row" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>'+tierLabel[tk]+'</span>'
+        +'<span>'+fmt(Math.round(c.single||0))+'</span>'
+        +'<span>'+fmt(Math.round(c.family||0))+'</span>'
+        +'<span>'+fmt(Math.round(c.child||0))+'</span>'
+        +'<span>'+fmt(Math.round(c.dep70||0))+'</span></div>';
+    }).join('');
+    body=
+      '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
+      +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
+      +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFS.date+'</span></div>'
+      +'<div class="sum-row"><span>Quote Type</span><span>Package Rate Card (no member data supplied)</span></div>'
+      +'</div>'
+      +'<div class="sum-sec"><div class="sum-lbl">MONTHLY RATE PER MEMBER TYPE (MWK)</div>'
+      +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>Package</span><span>Single</span><span>Family</span><span>Child</span><span>Dep.&le;70</span></div>'
+      +rcRows
+      +'</div>';
+  } else {
+    // ── STANDARD MODE — computed premium for the group ──
+    body=
+      '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
+      +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
+      +'<div class="sum-row"><span>Single Adult / Family Members</span><span>'+fmt(Q_GFS.n_single)+' / '+fmt(Q_GFS.n_family)+'</span></div>'
+      +'<div class="sum-row"><span>Additional Children</span><span>'+fmt(Q_GFS.n_extra_ch)+'</span></div>'
+      +'<div class="sum-row"><span>Dependants (&le;70 / 71&ndash;80)</span><span>'+fmt(Q_GFS.n_dep_u70)+' / '+fmt(Q_GFS.n_dep_o70)+'</span></div>'
+      +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFS.date+'</span></div>'
+      +'<div class="sum-row"><span>Optional Cash Benefit</span><span>'+(Q_GFS.inc_cash?'Included':'Not included')+'</span></div>'
+      +(Q_GFS.loading&&Q_GFS.loading!==0?'<div class="sum-row" style="border-top:1px dashed #EAE4DA;margin-top:4px;padding-top:4px"><span style="font-size:10.5px;color:#AAA">Int: Premium Adjustment</span><span style="color:'+(Q_GFS.loading>0?'#B44':'#1D6A45')+';font-size:11px">'+(Q_GFS.loading>0?'+':'')+Q_GFS.loading+'%</span></div>':'')
+      +'</div>'
+      +'<div class="sum-sec"><div class="sum-lbl">PACKAGE COMPARISON'+(selTier!=='all'?' — '+tierLabel[selTier]+' Selected':'')+'</div>'
+      +'<div class="sum-tier-row hdr"><span>Package</span><span>Monthly</span><span>Annual</span><span>Per Member/mo</span></div>'
+      +tierRows
+      +'</div>';
+    if(selTier!=='all'){
+      const t=tiers[selTier]||{};
+      body+='<div class="sum-sec"><div class="sum-lbl">PREMIUM SUMMARY ('+tierLabel[selTier].toUpperCase()+' PACKAGE)</div>'
+        +'<div class="sum-row hi"><span>Total Monthly Premium</span><span>'+fmt(Math.round(t.monthly_gross||0))+'</span></div>'
+        +'<div class="sum-row"><span>Monthly per Member</span><span>'+fmt(Math.round(t.per_member_monthly||0))+'</span></div>'
+        +(salBill>0?'<div class="sum-row"><span>As % of Salary Bill</span><span>'+((t.annual_gross||0)/salBill*100).toFixed(3)+'%</span></div>':'')
+        +'</div>';
+    } else if(salBill>0){
+      body+='<div class="sum-sec"><div class="sum-lbl">AFFORDABILITY</div>'
+        +'<div class="sum-row"><span>Executive as % of Salary Bill</span><span>'+((tiers.exe?.annual_gross||0)/salBill*100).toFixed(3)+'%</span></div>'
+        +'</div>';
+    }
+  }
+
+  sc.innerHTML=body
     +'<div style="display:flex;gap:10px;margin-top:4px">'
     +'<button class="btn primary" style="flex:1" onclick="gfsBuildPDF()">&#8681; Download PDF Quote</button>'
     +'<button class="btn" style="flex:1" onclick="gfsSaveToSheet()">&#9729; Save to GAS</button>'
@@ -4099,7 +4175,8 @@ function gfsSaveToSheet(silent){
   const gasUrl=(ADM.gasUrl||'').trim();
   const token=getSessionToken();
   if(!gasUrl||!token){if(!silent)showToast('Save requires a GAS connection and active session','error');return;}
-  const exe=GFS_RESULTS.tiers?.exe||{};
+  const selTier=Q_GFS.package_tier||'exe';
+  const selData=(selTier!=='all')?(GFS_RESULTS.tiers?.[selTier]||{}):(GFS_RESULTS.tiers?.exe||{});
   const payload={
     ref:Q_GFS.ref, product:'gfs', mode:'fast',
     prepBy:(CURRENT_USER?.fullName||CURRENT_USER?.name||''),
@@ -4107,7 +4184,8 @@ function gfsSaveToSheet(silent){
     n_single:Q_GFS.n_single, n_family:Q_GFS.n_family, n_extra_ch:Q_GFS.n_extra_ch,
     n_dep_u70:Q_GFS.n_dep_u70, n_dep_o70:Q_GFS.n_dep_o70,
     inc_cash:Q_GFS.inc_cash, sal_bill:Q_GFS.sal_bill||0,
-    exe_monthly:exe.monthly_gross||0, exe_annual:exe.annual_gross||0,
+    package_tier:selTier, rate_card_only:!!Q_GFS.rate_card_only,
+    exe_monthly:selData.monthly_gross||0, exe_annual:selData.annual_gross||0,
     q:JSON.stringify(Q_GFS), results:JSON.stringify(GFS_RESULTS)
   };
   const url=gasUrl+'?action=saveQuoteGFS&data='+encodeURIComponent(JSON.stringify(payload))+'&token='+encodeURIComponent(token);
@@ -4155,7 +4233,7 @@ function gfsBuildPDF(){
       doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(100,50,50);
       let cx=ML+3;
       cols.forEach(function(col){
-        if(col.r)doc.text(col.label,ML+CW-3,y+4,{align:'right'});
+        if(col.r)doc.text(col.label,cx+col.w-3,y+4,{align:'right'});
         else doc.text(col.label,cx,y+4);
         cx+=col.w;
       });
@@ -4167,7 +4245,7 @@ function gfsBuildPDF(){
       let cx=ML+3;
       cols.forEach(function(col){
         const txt=String(row[col.key]||'');
-        if(col.r)doc.text(txt,ML+CW-3,y+rh-2,{align:'right'});
+        if(col.r)doc.text(txt,cx+col.w-3,y+rh-2,{align:'right'});
         else doc.text(doc.splitTextToSize(txt,col.w-5)[0],cx,y+rh-2);
         cx+=col.w;
       });
@@ -4208,55 +4286,97 @@ function gfsBuildPDF(){
     doc.setFont('helvetica','normal');doc.setFontSize(9.5);
     doc.text('We write to formally submit our quotation for Funeral Services as follows:',ML,y,{maxWidth:CW});y+=8;
 
-    // ── SCHEME DETAILS ──────────────────────────────────────────
-    tblHdr([{label:'SCHEME DETAILS',w:CW}]);
-    [{lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
-     {lbl:'Single Adult Members',val:f2(q.n_single)},
-     {lbl:'Family Members',      val:f2(q.n_family)},
-     {lbl:'Additional Children', val:f2(q.n_extra_ch)},
-     {lbl:'Dependants (up to 70 / 71-80)', val:f2(q.n_dep_u70)+' / '+f2(q.n_dep_o70)},
-     {lbl:'Commencement Date',   val:dtStr},
-    ].forEach(function(row,i){
-      tblRow([{key:'lbl',w:75},{key:'val',w:CW-75}],row,7,i%2===0?[255,255,255]:[248,245,241]);
-    });
-    y+=4;
+    if(q.rate_card_only){
+      // ── RATE CARD MODE ───────────────────────────────────────────
+      tblHdr([{label:'SCHEME DETAILS',w:CW}]);
+      [{lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
+       {lbl:'Quote Type', val:'Package Rate Card — no member data supplied'},
+       {lbl:'Commencement Date', val:dtStr},
+      ].forEach(function(row,i){
+        tblRow([{key:'lbl',w:75},{key:'val',w:CW-75}],row,7,i%2===0?[255,255,255]:[248,245,241]);
+      });
+      y+=4;
 
-    // ── PACKAGE COMPARISON ────────────────────────────────────────
-    tblHdr([{label:'SERVICE PACKAGE OPTIONS',w:CW}]);
-    const tCols=[{key:'name',w:45,label:'Package'},{key:'mo',w:CW/3,label:'Monthly Premium (MWK)',r:true},{key:'an',w:CW/3-15,label:'Annual Premium (MWK)',r:true},{key:'pm',w:CW-45-CW/3-(CW/3-15),label:'Per Member/mo (MWK)',r:true}];
-    colHdr(tCols);
-    ['std','exe','vip'].forEach(function(tk,i){
-      const t=r.tiers[tk]||{};
-      const label=tk==='std'?'Standard':tk==='exe'?'Executive':'VIP';
-      tblRow(tCols,{name:label,mo:f2(t.monthly_gross),an:f2(t.annual_gross),pm:f2(t.per_member_monthly)},7,i%2===0?[255,255,255]:[248,245,241]);
-    });
-    y+=4;
+      tblHdr([{label:'MONTHLY RATE PER MEMBER TYPE (MWK)',w:CW}]);
+      const rcCols=[{key:'name',w:38,label:'Package'},{key:'single',w:(CW-38)/4,label:'Single Adult',r:true},{key:'family',w:(CW-38)/4,label:'Family',r:true},{key:'child',w:(CW-38)/4,label:'Add\'l Child',r:true},{key:'dep70',w:CW-38-3*((CW-38)/4),label:'Dependant \u226470',r:true}];
+      colHdr(rcCols);
+      ['std','exe','vip'].forEach(function(tk,i){
+        const c=(r.rate_card||{})[tk]||{};
+        const label=tk==='std'?'Standard':tk==='exe'?'Executive':'VIP';
+        tblRow(rcCols,{name:label,single:f2(c.single),family:f2(c.family),child:f2(c.child),dep70:f2(c.dep70)},7,i%2===0?[255,255,255]:[248,245,241]);
+      });
+      y+=4;
 
-    // ── OPTIONAL BENEFITS ─────────────────────────────────────────
-    if(q.inc_cash){
-      tblHdr([{label:'OPTIONAL CASH BENEFIT',w:CW}]);
-      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
-      doc.text('A cash benefit of MWK '+f2(r.tiers.exe.cash_benefit||1000000)+' is included alongside the service benefit, payable directly to the family in addition to funeral service provision.',ML,y+4,{maxWidth:CW-6});
-      y+=12;
+      if(q.inc_cash){
+        tblHdr([{label:'OPTIONAL CASH BENEFIT (PER MEMBER, MONTHLY)',w:CW}]);
+        colHdr(rcCols);
+        ['std','exe','vip'].forEach(function(tk,i){
+          const c=(r.rate_card||{})[tk]||{};
+          const label=tk==='std'?'Standard':tk==='exe'?'Executive':'VIP';
+          tblRow(rcCols,{name:label,single:f2(c.cash_single),family:f2(c.cash_family),child:f2(c.cash_child),dep70:f2(c.cash_dep)},7,i%2===0?[255,255,255]:[248,245,241]);
+        });
+        y+=4;
+      }
+
+      doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(...GR);
+      doc.text('Rates shown are per member per month for each package tier. A computed group premium can be issued once membership numbers are confirmed.',ML,y+3,{maxWidth:CW});
+      y+=10;
+
+    } else {
+      // ── COMPUTED GROUP QUOTE MODE ────────────────────────────────
+      tblHdr([{label:'SCHEME DETAILS',w:CW}]);
+      [{lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
+       {lbl:'Single Adult Members',val:f2(q.n_single)},
+       {lbl:'Family Members',      val:f2(q.n_family)},
+       {lbl:'Additional Children', val:f2(q.n_extra_ch)},
+       {lbl:'Dependants (up to 70 / 71-80)', val:f2(q.n_dep_u70)+' / '+f2(q.n_dep_o70)},
+       {lbl:'Commencement Date',   val:dtStr},
+      ].forEach(function(row,i){
+        tblRow([{key:'lbl',w:75},{key:'val',w:CW-75}],row,7,i%2===0?[255,255,255]:[248,245,241]);
+      });
+      y+=4;
+
+      // ── PACKAGE COMPARISON ──────────────────────────────────────
+      const selTier=q.package_tier||'exe';
+      const tierLabel={std:'Standard',exe:'Executive',vip:'VIP'};
+      tblHdr([{label:'SERVICE PACKAGE OPTIONS'+(selTier!=='all'?' \u2014 '+tierLabel[selTier]+' Selected':''),w:CW}]);
+      const tCols=[{key:'name',w:45,label:'Package'},{key:'mo',w:(CW-45)/3,label:'Monthly Premium (MWK)',r:true},{key:'an',w:(CW-45)/3,label:'Annual Premium (MWK)',r:true},{key:'pm',w:CW-45-2*((CW-45)/3),label:'Per Member/mo (MWK)',r:true}];
+      colHdr(tCols);
+      ['std','exe','vip'].forEach(function(tk,i){
+        const t=r.tiers[tk]||{};
+        const isSel=(selTier===tk);
+        tblRow(tCols,{name:tierLabel[tk]+(isSel?' *':''),mo:f2(t.monthly_gross),an:f2(t.annual_gross),pm:f2(t.per_member_monthly)},7,isSel?[240,225,215]:(i%2===0?[255,255,255]:[248,245,241]));
+      });
+      y+=4;
+
+      // ── OPTIONAL BENEFITS ───────────────────────────────────────
+      if(q.inc_cash){
+        tblHdr([{label:'OPTIONAL CASH BENEFIT',w:CW}]);
+        doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+        doc.text('A cash benefit of MWK '+f2(r.tiers.exe.cash_benefit||1000000)+' is included alongside the service benefit, payable directly to the family in addition to funeral service provision.',ML,y+4,{maxWidth:CW-6});
+        y+=12;
+      }
+
+      // ── PREMIUM SUMMARY (selected tier as headline; omitted when comparing all three) ──
+      if(selTier!=='all'){
+        tblHdr([{label:'PREMIUM SUMMARY ('+tierLabel[selTier].toUpperCase()+' PACKAGE)',w:CW}]);
+        const sel=r.tiers[selTier]||{};
+        const pCols=[{key:'item',w:CW-55},{key:'val',w:55,r:true}];
+        const pRows=[
+          {item:'TOTAL MONTHLY PREMIUM', val:'MWK '+f2(sel.monthly_gross), _bold:true},
+          {item:'Monthly Premium per Member', val:'MWK '+f2(sel.per_member_monthly)},
+        ];
+        if(salBill>0)pRows.push({item:'Premium as % of Salary Bill',val:((sel.annual_gross/salBill)*100).toFixed(3)+'%'});
+        pRows.forEach(function(row,i){
+          const isTotal=!!row._bold;
+          const bg=isTotal?[235,225,215]:(i%2===0?[255,255,255]:[248,245,241]);
+          if(isTotal)doc.setFont('helvetica','bold');
+          tblRow(pCols,row,7,bg);
+          if(isTotal)doc.setFont('helvetica','normal');
+        });
+        y+=4;
+      }
     }
-
-    // ── PREMIUM SUMMARY (Executive tier as headline) ──────────────
-    tblHdr([{label:'PREMIUM SUMMARY (EXECUTIVE PACKAGE)',w:CW}]);
-    const exe=r.tiers.exe||{};
-    const pCols=[{key:'item',w:CW-55},{key:'val',w:55,r:true}];
-    const pRows=[
-      {item:'TOTAL MONTHLY PREMIUM', val:'MWK '+f2(exe.monthly_gross), _bold:true},
-      {item:'Monthly Premium per Member', val:'MWK '+f2(exe.per_member_monthly)},
-    ];
-    if(salBill>0)pRows.push({item:'Premium as % of Salary Bill',val:((exe.annual_gross/salBill)*100).toFixed(3)+'%'});
-    pRows.forEach(function(row,i){
-      const isTotal=!!row._bold;
-      const bg=isTotal?[235,225,215]:(i%2===0?[255,255,255]:[248,245,241]);
-      if(isTotal)doc.setFont('helvetica','bold');
-      tblRow(pCols,row,7,bg);
-      if(isTotal)doc.setFont('helvetica','normal');
-    });
-    y+=4;
 
     // ── VALIDITY + SIGNATORIES ────────────────────────────────────
     if(y>H-52){doc.addPage();y=20;}
