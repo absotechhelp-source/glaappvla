@@ -4161,8 +4161,11 @@ function gfsDisplaySummary(){
       +'</div>';
   } else if(Q_GFS.rate_card_only){
     // ── RATE CARD MODE — generic per-unit pricing, no computed total ──
+    // Respects the selected package tier: shows only that tier's rates
+    // unless "Compare All Three" was explicitly chosen.
     const rc=r.rate_card||{};
-    const rcRows=['std','exe','vip'].map(function(tk){
+    const tiersToShow=(selTier==='all'||!['std','exe','vip'].includes(selTier))?['std','exe','vip']:[selTier];
+    const rcRows=tiersToShow.map(function(tk){
       const c=rc[tk]||{};
       return '<div class="sum-tier-row" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>'+tierLabel[tk]+'</span>'
         +'<span>'+fmt(Math.round(c.single||0))+'</span>'
@@ -4170,7 +4173,7 @@ function gfsDisplaySummary(){
         +'<span>'+fmt(Math.round(c.child||0))+'</span>'
         +'<span>'+fmt(Math.round(c.dep70||0))+'</span></div>';
     }).join('');
-    const cashRows=Q_GFS.inc_cash?['std','exe','vip'].map(function(tk){
+    const cashRows=Q_GFS.inc_cash?tiersToShow.map(function(tk){
       const c=rc[tk]||{};
       return '<div class="sum-tier-row" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>'+tierLabel[tk]+'</span>'
         +'<span>'+fmt(Math.round(c.cash_single||0))+'</span>'
@@ -4178,7 +4181,7 @@ function gfsDisplaySummary(){
         +'<span>'+fmt(Math.round(c.cash_child||0))+'</span>'
         +'<span>'+fmt(Math.round(c.cash_dep||0))+'</span></div>';
     }).join(''):'';
-    const lieuRows=['std','exe','vip'].map(function(tk){
+    const lieuRows=tiersToShow.map(function(tk){
       const c=rc[tk]||{};
       return '<div class="sum-row"><span>'+tierLabel[tk]+' — Services Only / + Transport</span><span>'+fmt(Math.round(c.lieu_services||0))+' / '+fmt(Math.round(c.lieu_transport||0))+'</span></div>';
     }).join('');
@@ -4186,7 +4189,7 @@ function gfsDisplaySummary(){
       '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
       +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
       +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFS.date+'</span></div>'
-      +'<div class="sum-row"><span>Quote Type</span><span>Package Rate Card (no member data supplied)</span></div>'
+      +'<div class="sum-row"><span>Quote Type</span><span>Package Rate Card'+(tiersToShow.length===1?' — '+tierLabel[tiersToShow[0]]+' Only':' — All Three Compared')+'</span></div>'
       +'</div>'
       +'<div class="sum-sec"><div class="sum-lbl">MONTHLY RATE PER MEMBER TYPE (MWK)</div>'
       +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>Package</span><span>Single</span><span>Family</span><span>Child</span><span>Dep.&le;70</span></div>'
@@ -4398,9 +4401,13 @@ function gfsBuildPDF(){
     doc.text('We write to formally submit our quotation for Funeral Services as follows:',ML,y,{maxWidth:CW});y+=8;
 
     if(q.rate_card_only && (q.package_tier||'exe')!=='custom'){
+      const selTierPdf=q.package_tier||'exe';
+      const tiersToShow=(selTierPdf==='all'||!['std','exe','vip'].includes(selTierPdf))?['std','exe','vip']:[selTierPdf];
+      const tierLabelMap={std:'Standard',exe:'Executive',vip:'VIP'};
+
       tblHdr([{label:'SCHEME DETAILS',w:CW}]);
       [{lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
-       {lbl:'Quote Type', val:'Package Rate Card — no member data supplied'},
+       {lbl:'Quote Type', val:'Package Rate Card'+(tiersToShow.length===1?' — '+tierLabelMap[tiersToShow[0]]+' Only':' — All Three Compared')},
        {lbl:'Commencement Date', val:dtStr},
       ].forEach(function(row,i){
         tblRow([{key:'lbl',w:75},{key:'val',w:CW-75}],row,7,i%2===0?[255,255,255]:[248,245,241]);
@@ -4410,28 +4417,29 @@ function gfsBuildPDF(){
       tblHdr([{label:'MONTHLY RATE PER MEMBER TYPE (MWK)',w:CW}]);
       const rcCols=[{key:'name',w:38,label:'Package'},{key:'single',w:(CW-38)/4,label:'Single Adult',r:true},{key:'family',w:(CW-38)/4,label:'Family',r:true},{key:'child',w:(CW-38)/4,label:'Add\'l Child',r:true},{key:'dep70',w:CW-38-3*((CW-38)/4),label:'Dependant (up to 70)',r:true}];
       colHdr(rcCols);
-      ['std','exe','vip'].forEach(function(tk,i){
+      tiersToShow.forEach(function(tk,i){
         const c=(r.rate_card||{})[tk]||{};
-        const label=tk==='std'?'Standard':tk==='exe'?'Executive':'VIP';
-        tblRow(rcCols,{name:label,single:f2(c.single),family:f2(c.family),child:f2(c.child),dep70:f2(c.dep70)},7,i%2===0?[255,255,255]:[248,245,241]);
+        tblRow(rcCols,{name:tierLabelMap[tk],single:f2(c.single),family:f2(c.family),child:f2(c.child),dep70:f2(c.dep70)},7,i%2===0?[255,255,255]:[248,245,241]);
       });
       y+=4;
 
       if(q.inc_cash){
         tblHdr([{label:'OPTIONAL CASH BENEFIT (PER MEMBER, MONTHLY)',w:CW}]);
         colHdr(rcCols);
-        ['std','exe','vip'].forEach(function(tk,i){
+        tiersToShow.forEach(function(tk,i){
           const c=(r.rate_card||{})[tk]||{};
-          const label=tk==='std'?'Standard':tk==='exe'?'Executive':'VIP';
-          tblRow(rcCols,{name:label,single:f2(c.cash_single),family:f2(c.cash_family),child:f2(c.cash_child),dep70:f2(c.cash_dep)},7,i%2===0?[255,255,255]:[248,245,241]);
+          tblRow(rcCols,{name:tierLabelMap[tk],single:f2(c.cash_single),family:f2(c.cash_family),child:f2(c.cash_child),dep70:f2(c.cash_dep)},7,i%2===0?[255,255,255]:[248,245,241]);
         });
         y+=4;
       }
 
-      // ── SERVICE BENEFIT SCHEDULE (per package tier) ────────────
+      // ── SERVICE BENEFIT SCHEDULE (columns limited to selected tiers) ──
       if(y>H-130){doc.addPage();y=20;}
       tblHdr([{label:'FUNERAL SERVICE BENEFITS BY PACKAGE',w:CW}]);
-      const bCols=[{key:'item',w:CW*0.34,label:'Benefit'},{key:'std',w:CW*0.22,label:'Standard'},{key:'exe',w:CW*0.22,label:'Executive'},{key:'vip',w:CW-CW*0.34-CW*0.22-CW*0.22,label:'VIP'}];
+      const bColW=CW*0.34/1 , bTierColW=(CW-CW*0.34)/tiersToShow.length;
+      const bCols=[{key:'item',w:CW*0.34,label:'Benefit'}].concat(tiersToShow.map(function(tk,i){
+        return {key:tk,w:i===tiersToShow.length-1?CW-CW*0.34-bTierColW*(tiersToShow.length-1):bTierColW,label:tierLabelMap[tk]};
+      }));
       colHdr(bCols);
       const benefitSchedule=[
         {item:'Coffin/Casket Type', std:'Coffin', exe:'Casket', vip:'Dome Casket'},
@@ -4451,15 +4459,25 @@ function gfsBuildPDF(){
       benefitSchedule.forEach(function(row,i){tblRow(bCols,row,7,i%2===0?[255,255,255]:[248,245,241]);});
       y+=4;
 
-      // ── CASH IN LIEU OF SERVICES ────────────────────────────────
+      // ── CASH IN LIEU OF SERVICES (columns limited to selected tiers) ──
       if(y>H-60){doc.addPage();y=20;}
       tblHdr([{label:'CASH IN LIEU OF SERVICES (MWK)',w:CW}]);
-      const lCols=[{key:'item',w:CW*0.4},{key:'std',w:CW*0.2,r:true},{key:'exe',w:CW*0.2,r:true},{key:'vip',w:CW-CW*0.4-CW*0.2-CW*0.2,r:true}];
-      const lHdrCols=[{key:'item',w:CW*0.4,label:''},{key:'std',w:CW*0.2,label:'Standard',r:true},{key:'exe',w:CW*0.2,label:'Executive',r:true},{key:'vip',w:CW-CW*0.4-CW*0.2-CW*0.2,label:'VIP',r:true}];
+      const lTierColW=(CW-CW*0.4)/tiersToShow.length;
+      const lCols=[{key:'item',w:CW*0.4}].concat(tiersToShow.map(function(tk,i){
+        return {key:tk,w:i===tiersToShow.length-1?CW-CW*0.4-lTierColW*(tiersToShow.length-1):lTierColW,r:true};
+      }));
+      const lHdrCols=[{key:'item',w:CW*0.4,label:''}].concat(tiersToShow.map(function(tk,i){
+        return {key:tk,w:i===tiersToShow.length-1?CW-CW*0.4-lTierColW*(tiersToShow.length-1):lTierColW,label:tierLabelMap[tk],r:true};
+      }));
       colHdr(lHdrCols);
       const rc0=r.rate_card||{};
-      tblRow(lCols,{item:'Services Only',std:f2(rc0.std?.lieu_services),exe:f2(rc0.exe?.lieu_services),vip:f2(rc0.vip?.lieu_services)},7,[255,255,255]);
-      tblRow(lCols,{item:'Services + Mourners Transport',std:f2(rc0.std?.lieu_transport),exe:f2(rc0.exe?.lieu_transport),vip:f2(rc0.vip?.lieu_transport)},7,[248,245,241]);
+      const lieuRow1={item:'Services Only'}, lieuRow2={item:'Services + Mourners Transport'};
+      tiersToShow.forEach(function(tk){
+        lieuRow1[tk]=f2(rc0[tk]?.lieu_services);
+        lieuRow2[tk]=f2(rc0[tk]?.lieu_transport);
+      });
+      tblRow(lCols,lieuRow1,7,[255,255,255]);
+      tblRow(lCols,lieuRow2,7,[248,245,241]);
       y+=4;
 
       doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(...GR);
