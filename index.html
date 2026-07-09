@@ -4128,7 +4128,38 @@ function gfsDisplaySummary(){
 
   let body='';
 
-  if(Q_GFS.rate_card_only){
+  if(selTier==='custom'){
+    // ── CUSTOM COVER OPTIONS — checked FIRST: an explicit package
+    // selection must always win over the generic Step 2 rate-card
+    // toggle, otherwise selecting Custom Cover silently does nothing
+    // whenever "no member data" was also ticked.
+    const cco=r.custom_cover_options||{corporate:[],dependent:[]};
+    const corpRows=(cco.corporate||[]).map(function(o){
+      return '<div class="sum-tier-row" style="grid-template-columns:1fr 1fr 1fr"><span>MWK '+fmt(o.cover)+'</span>'
+        +'<span>'+fmt(Math.round(o.family_monthly))+'/mo</span>'
+        +'<span>'+fmt(Math.round(o.single_monthly))+'/mo</span></div>';
+    }).join('');
+    const depRows=(cco.dependent||[]).map(function(o){
+      return '<div class="sum-row"><span>MWK '+fmt(o.cover)+' cover</span><span>'+fmt(Math.round(o.monthly))+'/mo</span></div>';
+    }).join('');
+    body=
+      '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
+      +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
+      +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFS.date+'</span></div>'
+      +'<div class="sum-row"><span>Quote Type</span><span>Custom Cover Options (Cash-in-Lieu)</span></div>'
+      +(Q_GFS.loading&&Q_GFS.loading!==0?'<div class="sum-row" style="border-top:1px dashed #EAE4DA;margin-top:4px;padding-top:4px"><span style="font-size:10.5px;color:#AAA">Int: Premium Adjustment</span><span style="color:'+(Q_GFS.loading>0?'#B44':'#1D6A45')+';font-size:11px">'+(Q_GFS.loading>0?'+':'')+Q_GFS.loading+'%</span></div>':'')
+      +'</div>'
+      +'<div class="sum-sec"><div class="sum-lbl">CORPORATE COVER OPTIONS</div>'
+      +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 1fr 1fr"><span>Cover Amount</span><span>Family Structure</span><span>Single Adult</span></div>'
+      +(corpRows||'<div class="sum-row"><span>No corporate cover amounts entered</span></div>')
+      +'</div>'
+      +'<div class="sum-sec"><div class="sum-lbl">DEPENDENT COVER OPTIONS</div>'
+      +(depRows||'<div class="sum-row"><span>No dependent cover amounts entered</span></div>')
+      +'</div>'
+      +'<div class="sum-sec" style="background:#FBF7F6;border-color:#E8CECE">'
+      +'<p style="font-size:10.5px;color:#888;line-height:1.5;margin:0">Transport costs are embedded in the cover amount — no separate transport line applies. Premiums shown are indicative, derived from the published Optional Cash Benefit rate, pending final actuarial confirmation.</p>'
+      +'</div>';
+  } else if(Q_GFS.rate_card_only){
     // ── RATE CARD MODE — generic per-unit pricing, no computed total ──
     const rc=r.rate_card||{};
     const rcRows=['std','exe','vip'].map(function(tk){
@@ -4139,6 +4170,18 @@ function gfsDisplaySummary(){
         +'<span>'+fmt(Math.round(c.child||0))+'</span>'
         +'<span>'+fmt(Math.round(c.dep70||0))+'</span></div>';
     }).join('');
+    const cashRows=Q_GFS.inc_cash?['std','exe','vip'].map(function(tk){
+      const c=rc[tk]||{};
+      return '<div class="sum-tier-row" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>'+tierLabel[tk]+'</span>'
+        +'<span>'+fmt(Math.round(c.cash_single||0))+'</span>'
+        +'<span>'+fmt(Math.round(c.cash_family||0))+'</span>'
+        +'<span>'+fmt(Math.round(c.cash_child||0))+'</span>'
+        +'<span>'+fmt(Math.round(c.cash_dep||0))+'</span></div>';
+    }).join(''):'';
+    const lieuRows=['std','exe','vip'].map(function(tk){
+      const c=rc[tk]||{};
+      return '<div class="sum-row"><span>'+tierLabel[tk]+' — Services Only / + Transport</span><span>'+fmt(Math.round(c.lieu_services||0))+' / '+fmt(Math.round(c.lieu_transport||0))+'</span></div>';
+    }).join('');
     body=
       '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
       +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
@@ -4148,8 +4191,15 @@ function gfsDisplaySummary(){
       +'<div class="sum-sec"><div class="sum-lbl">MONTHLY RATE PER MEMBER TYPE (MWK)</div>'
       +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>Package</span><span>Single</span><span>Family</span><span>Child</span><span>Dep.&le;70</span></div>'
       +rcRows
-      +'</div>';
-  } else if(selTier==='custom'){
+      +'</div>'
+      +(Q_GFS.inc_cash?('<div class="sum-sec"><div class="sum-lbl">OPTIONAL CASH BENEFIT (PER MEMBER, MONTHLY)</div>'
+        +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 70px 70px 70px 70px"><span>Package</span><span>Single</span><span>Family</span><span>Child</span><span>Dep.&le;70</span></div>'
+        +cashRows+'</div>'):'')
+      +'<div class="sum-sec"><div class="sum-lbl">CASH IN LIEU OF SERVICES (MWK)</div>'
+      +lieuRows
+      +'</div>'
+      +'<div class="sum-sec" style="background:#FBF7F6;border-color:#E8CECE"><p style="font-size:10.5px;color:#888;line-height:1.5;margin:0">Rates shown are per member per month for each package tier. A computed group premium can be issued once membership numbers are confirmed.</p></div>';
+  } else if(false){
     // ── CUSTOM COVER OPTIONS — cash-in-lieu at specific cover amounts ──
     const cco=r.custom_cover_options||{corporate:[],dependent:[]};
     const corpRows=(cco.corporate||[]).map(function(o){
@@ -4347,8 +4397,7 @@ function gfsBuildPDF(){
     doc.setFont('helvetica','normal');doc.setFontSize(9.5);
     doc.text('We write to formally submit our quotation for Funeral Services as follows:',ML,y,{maxWidth:CW});y+=8;
 
-    if(q.rate_card_only){
-      // ── RATE CARD MODE ───────────────────────────────────────────
+    if(q.rate_card_only && (q.package_tier||'exe')!=='custom'){
       tblHdr([{label:'SCHEME DETAILS',w:CW}]);
       [{lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
        {lbl:'Quote Type', val:'Package Rate Card — no member data supplied'},
@@ -4380,7 +4429,7 @@ function gfsBuildPDF(){
       }
 
       // ── SERVICE BENEFIT SCHEDULE (per package tier) ────────────
-      if(y>H-100){doc.addPage();y=20;}
+      if(y>H-130){doc.addPage();y=20;}
       tblHdr([{label:'FUNERAL SERVICE BENEFITS BY PACKAGE',w:CW}]);
       const bCols=[{key:'item',w:CW*0.34,label:'Benefit'},{key:'std',w:CW*0.22,label:'Standard'},{key:'exe',w:CW*0.22,label:'Executive'},{key:'vip',w:CW-CW*0.34-CW*0.22-CW*0.22,label:'VIP'}];
       colHdr(bCols);
@@ -4486,7 +4535,7 @@ function gfsBuildPDF(){
       }
 
       // ── SERVICE BENEFIT SCHEDULE (per package tier) ────────────
-      if(y>H-100){doc.addPage();y=20;}
+      if(y>H-130){doc.addPage();y=20;}
       tblHdr([{label:'FUNERAL SERVICE BENEFITS BY PACKAGE',w:CW}]);
       const bCols=[{key:'item',w:CW*0.34,label:'Benefit'},{key:'std',w:CW*0.22,label:'Standard'},{key:'exe',w:CW*0.22,label:'Executive'},{key:'vip',w:CW-CW*0.34-CW*0.22-CW*0.22,label:'VIP'}];
       colHdr(bCols);
