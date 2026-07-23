@@ -2340,19 +2340,30 @@ async function pingGASOnLoad(){
 }
 
 // Apply config fetched from GAS. Overwrites SECTORS and TIERS entirely.
-// For admin params: GAS values win UNLESS the user has already saved a manual
-// override for that key in localStorage.
+// Admin parameters: the server (Engine Config sheet) is now the single
+// source of truth and always wins. Previously a local override in
+// localStorage would permanently shadow the server value for that key —
+// exactly the bug where a change on one device never appeared on others,
+// and a device with an old local tweak would keep ignoring server updates
+// forever. gasUrl is the one exception: that's a per-deployment connection
+// setting, not a shared pricing parameter, so it stays local.
 function applyGASConfig(cfg){
   if(cfg.sectors&&typeof cfg.sectors==='object')SECTORS=cfg.sectors;
   if(cfg.tiers&&Array.isArray(cfg.tiers))TIERS=cfg.tiers;
   if(cfg.adminDefaults&&typeof cfg.adminDefaults==='object'){
     GAS_DEFAULTS=cfg.adminDefaults;
-    // Only apply keys the user hasn't explicitly overridden in localStorage
-    const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
     Object.entries(GAS_DEFAULTS).forEach(([k,v])=>{
       if(k==='gasUrl')return;    // never let GAS overwrite the URL used to reach it
-      if(!(k in saved))ADM[k]=v; // user override takes precedence
+      ADM[k]=v;                 // server is authoritative for every engine parameter
     });
+    // Keep the local cache in sync too, so an offline reload still shows
+    // the last-known-server values rather than resurrecting old local edits.
+    try{
+      const cached=JSON.parse(localStorage.getItem('vla_gla_adm')||'{}')||{};
+      Object.keys(GAS_DEFAULTS).forEach(k=>{if(k!=='gasUrl')cached[k]=GAS_DEFAULTS[k];});
+      if(ADM.gasUrl)cached.gasUrl=ADM.gasUrl;
+      localStorage.setItem('vla_gla_adm',JSON.stringify(cached));
+    }catch(e){}
   }
   // Refresh any live UI that depends on this config
   refreshConfigDependentUI();
@@ -3039,13 +3050,45 @@ function renderAdminFields(){
   }).join('');
   document.getElementById('adm-gas').value=ADM.gasUrl||'';
 }
-function saveAdmin(){
-  ADM_META.forEach(([k])=>{const v=parseFloat(document.getElementById('adm-'+k)?.value);if(!isNaN(v))ADM[k]=v;});
+async function saveAdmin(){
+  const changed={};
+  ADM_META.forEach(([k])=>{
+    const v=parseFloat(document.getElementById('adm-'+k)?.value);
+    if(!isNaN(v)){ADM[k]=v;changed[k]=v;}
+  });
   const gasVal=(document.getElementById('adm-gas')?.value||'').trim();
   if(gasVal)ADM.gasUrl=gasVal;  // only overwrite if non-empty
-  localStorage.setItem('vla_gla_adm',JSON.stringify(ADM));
+  localStorage.setItem('vla_gla_adm',JSON.stringify(ADM)); // local cache for this device
   const btn=event?.target;
-  if(btn){const orig=btn.textContent;btn.textContent='Saved ✓';setTimeout(()=>btn.textContent=orig,1500);}
+  const setBtnText=(t)=>{if(btn)btn.textContent=t;};
+  if(CURRENT_USER?.role!=='admin'){
+    setBtnText('Saved ✓ (local only)');
+    if(btn){const orig='Save';setTimeout(()=>setBtnText(orig),2000);}
+    return;
+  }
+  // Persist to the server so every device — not just this browser — picks
+  // up the change. Root cause of "not updating on all devices": this call
+  // never used to happen at all; changes only ever reached localStorage.
+  setBtnText('Saving…');
+  try{
+    const gasUrl=(ADM.gasUrl||'').trim();
+    const token=getSessionToken();
+    if(!gasUrl||!token){setBtnText('No GAS connection');setTimeout(()=>setBtnText('Save'),2000);return;}
+    const url=gasUrl+'?action=saveConfig&config='+encodeURIComponent(JSON.stringify(changed))+'&token='+encodeURIComponent(token);
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.status==='ok'){
+      setBtnText('Saved ✓ — live everywhere');
+      showToast(data.message||'Engine parameters updated for all devices','success');
+    } else {
+      setBtnText('Save failed');
+      showToast(data.message||'Could not save to server — check GAS connection','error');
+    }
+  }catch(e){
+    setBtnText('Save failed');
+    showToast('Save failed: '+e.message,'error');
+  }
+  setTimeout(()=>setBtnText('Save'),2500);
 }
 function resetAdmin(){
   const base=GAS_DEFAULTS||_ADM_FALLBACK; // prefer server-authoritative defaults
