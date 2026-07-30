@@ -2049,7 +2049,6 @@ function buildPDFDoc(){
   doc.setFillColor(...M);doc.rect(ML,y+2,CW,0.4,'F');
   y+=9;
   doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...TX);
-  doc.text('The subject refers.',ML,y);y+=5;
   doc.text('We write to formally submit our quotation for Group Life Assurance (GLA) as follows:',ML,y);y+=10;
 
   // SCHEME DETAILS
@@ -2087,6 +2086,8 @@ function buildPDFDoc(){
     // Cover Options — cols sum to CW=174mm: [42]+[28]+[52]+[52]
   const covCols=[['Cover',42,'left'],['% of Payroll',28,'right'],['Annual Premium (MWK)',52,'right'],['Total GLA Benefit (MWK)',52,'right']];
   const covColsIndent=[['Cover',42-2.5,'left'],['% of Payroll',28,'right'],['Annual Premium (MWK)',52,'right'],['Total GLA Benefit (MWK)',52,'right']];
+  const covNeeded=8.5+pdfOptions.length*7.5;
+  if(y+covNeeded > H-25){ doc.addPage(); y=20; }
   y=tblHdr(covCols,ML,y,8.5);
   pdfOptions.forEach(({k,pa},i)=>{
     const isCur=k===+Q.mult;
@@ -2097,17 +2098,21 @@ function buildPDFDoc(){
   y+=6;
 
     // FUNERAL BENEFIT
-  // Page break check before funeral section
-  if(y > H - 60){ doc.addPage(); y = 20; }
+  const funCols=[['Life Assured',70,'left'],['Number Covered',40,'center'],['Benefit on Death (MWK)',64,'right']];
+  const funRows=buildFuneralRows(Q);
+  // Dynamic page-break: reserve exactly what this table needs (header +
+  // column header + one row per line), not a fixed guess — Category
+  // Split can produce far more rows than the old single-benefit table
+  // ever did, and a fixed check was clipping rows under the footer.
+  const funNeeded=10+8.5+funRows.length*7;
+  if(y+funNeeded > H-25){ doc.addPage(); y=20; }
   // FUNERAL BENEFIT section header
   doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(...M);
   doc.text('FUNERAL BENEFIT',ML,y+4);
   doc.setDrawColor(200,178,145);doc.line(ML,y+5.5,ML+CW,y+5.5);
   doc.setTextColor(...TX);y+=10;
-  const funCols=[['Life Assured',70,'left'],['Number Covered',40,'center'],['Benefit on Death (MWK)',64,'right']];
   y=tblHdr(funCols,ML,y,8.5);
-  const funRows=buildFuneralRows(Q);
-  funRows.forEach((row,i)=>{ y=tblRow(funCols,row,ML,y,7.5,i%2===0?[255,255,255]:[248,245,241]); });
+  funRows.forEach((row,i)=>{ y=tblRow(funCols,row,ML,y,7,i%2===0?[255,255,255]:[248,245,241]); });
   y+=6;
   // ── Validity disclaimer on page 1 ──────────────────────
   doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=6;
