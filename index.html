@@ -1172,20 +1172,41 @@ input,select{min-height:38px}
       <!-- HISTORY VIEW -->
       <div class="view" id="view-history">
         <div class="view-hdr">
-          <h1>Quote History</h1>
-          <p>All auto-saved quotes. Click PDF to regenerate, Revise to edit in wizard.</p>
+          <h1 id="hist-view-title">Quote History</h1>
+          <p id="hist-view-sub">All auto-saved quotes. Click PDF to regenerate, Revise to edit in wizard.</p>
         </div>
-        <div class="qh-filters">
-          <input class="qh-srch" type="text" id="qh-search" placeholder="Search by company or reference&hellip;" oninput="renderHistory()">
-          <select class="qh-sel" id="qh-mode" onchange="renderHistory()">
-            <option value="">All modes</option>
-            <option value="fast">Fast Quote</option>
-            <option value="full">Full Quote</option>
-          </select>
-          <button id="retrosync-btn" class="btn" style="padding:6px 14px;font-size:12px;white-space:nowrap" onclick="retroSyncAll()">&#128229; Sync from Sheet</button>
-          <span id="qh-count" style="font-size:12px;color:#AAA;align-self:center"></span>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button class="ftab active" id="hist-tab-data" onclick="switchHistTab('data')">Quote History</button>
+          <button class="ftab" id="hist-tab-archive" onclick="switchHistTab('archive')">PDF Archive</button>
         </div>
-        <div id="qh-list" class="qh-list"></div>
+        <div id="hist-data-panel">
+          <div class="qh-filters">
+            <input class="qh-srch" type="text" id="qh-search" placeholder="Search by company or reference&hellip;" oninput="renderHistory()">
+            <select class="qh-sel" id="qh-mode" onchange="renderHistory()">
+              <option value="">All modes</option>
+              <option value="fast">Fast Quote</option>
+              <option value="full">Full Quote</option>
+            </select>
+            <button id="retrosync-btn" class="btn" style="padding:6px 14px;font-size:12px;white-space:nowrap" onclick="retroSyncAll()">&#128229; Sync from Sheet</button>
+            <span id="qh-count" style="font-size:12px;color:#AAA;align-self:center"></span>
+          </div>
+          <div id="qh-list" class="qh-list"></div>
+        </div>
+        <div id="hist-archive-panel" style="display:none">
+          <div class="qh-filters">
+            <input class="qh-srch" type="text" id="pdfarc-search" placeholder="Search by company or reference&hellip;" oninput="renderPdfArchive()">
+            <select class="qh-sel" id="pdfarc-product" onchange="renderPdfArchive()">
+              <option value="">All products</option>
+              <option value="GLA">GLA</option>
+              <option value="GFC">GFC</option>
+              <option value="GFS">GFS</option>
+              <option value="GCL">GCL</option>
+              <option value="RET">RET</option>
+            </select>
+            <span id="pdfarc-count" style="font-size:12px;color:#AAA;align-self:center"></span>
+          </div>
+          <div id="pdfarc-list" class="qh-list"></div>
+        </div>
       </div>
 
       <!-- ADMIN VIEW -->
@@ -1928,6 +1949,7 @@ function generatePDF(){
   const safeCompany=(Q.company||'Quote').replace(/[^a-z0-9]+/gi,'_').replace(/^_+|_+$/g,'');
   const safeRef=(Q.ref||new Date().toISOString().slice(0,10).replace(/-/g,'')).replace(/[^a-z0-9-]+/gi,'_');
   doc.save(`VLA-GLA-${safeCompany}-${safeRef}.pdf`);
+  archiveGeneratedPDF('gla',doc,Q.ref,Q.company);
 }
 
 /* ── Shared VLA PDF letterhead images ─────────────────────── */
@@ -2305,7 +2327,7 @@ async function gasFetchQuotes(){
   const token=getSessionToken();
   if(!token)return null; // not logged in (yet) — nothing to fetch with
   try{
-    const r=await fetch(`${url}?action=getQuotes&limit=100&token=${encodeURIComponent(token)}`,{redirect:'follow'});
+    const r=await fetch(`${url}?action=getAllQuotes&limit=100&token=${encodeURIComponent(token)}`,{redirect:'follow'});
     const j=await r.json();
     return j.status==='ok'?(j.quotes||[]):null;
   }catch{return null;}
@@ -3081,7 +3103,7 @@ function autoSaveQuote(){
   localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
   renderSavedList();
   // Push to GAS — full payload enables cross-device PDF on any signed-in device
-  gasPost({ref:Q.ref||id,date:Q.date||'',company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa,sector:Q.sec||'',prepBy:Q.prepby||'',benefits:{inc_funeral:!!Q.inc_funeral,inc_ci:!!Q.inc_ci,inc_dis:!!Q.inc_dis,inc_ad:!!Q.inc_ad,inc_sp:!!Q.inc_sp},fullData:JSON.stringify({q:{...Q},results:{...RESULTS},mode:MODE})});
+  gasPost({ref:Q.ref||id,date:Q.date||'',company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa,sector:Q.sec||'',prepBy:Q.prepby||'',preparedByUsername:CURRENT_USER?.username||CURRENT_USER?.name||'',actingFAUsername:ACTING_FA?.username||'',benefits:{inc_funeral:!!Q.inc_funeral,inc_ci:!!Q.inc_ci,inc_dis:!!Q.inc_dis,inc_ad:!!Q.inc_ad,inc_sp:!!Q.inc_sp},fullData:JSON.stringify({q:{...Q},results:{...RESULTS},mode:MODE})});
 
 }
 
@@ -3097,7 +3119,7 @@ function saveQuote(){
   else{SAVED_QUOTES.unshift(entry);if(SAVED_QUOTES.length>30)SAVED_QUOTES=SAVED_QUOTES.slice(0,30);}
   localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
   renderSavedList();
-  gasPost({ref:Q.ref||finalId,date:Q.date||'',company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa,sector:Q.sec||'',prepBy:Q.prepby||'',benefits:{inc_funeral:!!Q.inc_funeral,inc_ci:!!Q.inc_ci,inc_dis:!!Q.inc_dis,inc_ad:!!Q.inc_ad,inc_sp:!!Q.inc_sp},fullData:JSON.stringify({q:{...Q},results:{...RESULTS},mode:MODE})});
+  gasPost({ref:Q.ref||finalId,date:Q.date||'',company:Q.company,mode:MODE,nMembers:MODE==='fast'?+Q.n:MEMBERS.length,payroll:MODE==='fast'?+Q.sal:RESULTS.totSal,multiple:Q.mult,annualPremium:RESULTS.total_pa,sector:Q.sec||'',prepBy:Q.prepby||'',preparedByUsername:CURRENT_USER?.username||CURRENT_USER?.name||'',actingFAUsername:ACTING_FA?.username||'',benefits:{inc_funeral:!!Q.inc_funeral,inc_ci:!!Q.inc_ci,inc_dis:!!Q.inc_dis,inc_ad:!!Q.inc_ad,inc_sp:!!Q.inc_sp},fullData:JSON.stringify({q:{...Q},results:{...RESULTS},mode:MODE})});
   const sc=document.getElementById('summary-content');
   if(sc){const b=document.createElement('div');b.className='msg ok';b.textContent=existing2>=0?'✓ Quote updated.':'✓ Quote saved.';sc.prepend(b);setTimeout(()=>b.remove(),3000);}
 }
@@ -3788,6 +3810,8 @@ function gfcSaveToSheet(silent){
   const payload={
     ref:Q_GFC.ref, product:'gfc', mode:GFC_MODE,
     prepBy:(CURRENT_USER?.fullName||CURRENT_USER?.name||''),
+    preparedByUsername:CURRENT_USER?.username||CURRENT_USER?.name||'',
+    actingFAUsername:ACTING_FA?.username||'',
     monthly_per_member:GFC_RESULTS.total_monthly/(Q_GFC.n||1),
     parents_included:(Q_GFC.f_scope==='member_family'&&Q_GFC.f_nPar>0)?'Yes ('+Q_GFC.f_nPar+')':'No',
     sal_bill:Q_GFC.sal_bill||0,
@@ -3918,6 +3942,11 @@ function gfcBuildPDF(){
 
     // ── BENEFIT STRUCTURE ─────────────────────────────────────────
     if(isTiered){
+      // Dynamic page-break: this table can have any number of
+      // admin-added tiers — a fixed guess was the same bug class that
+      // clipped GLA's category-split funeral table under its footer.
+      const tierNeeded=6+5.5+r.tier_results.length*7;
+      if(y+tierNeeded > H-25){ doc.addPage(); y=20; }
       tblHdr([{label:'BENEFIT STRUCTURE BY GRADE',w:CW}]);
       const tCols=[{key:'name',w:60,label:'Grade / Tier'},{key:'n',w:30,label:'Members'},{key:'ben',w:CW-90,label:'Member Funeral Benefit (MWK)'}];
       colHdr(tCols);
@@ -4075,6 +4104,7 @@ function gfcBuildPDF(){
     }
 
     doc.save('VLA-GFC-'+(q.company||'Quote').replace(/[^A-Za-z0-9]/g,'_')+'-'+q.ref+'.pdf');
+    archiveGeneratedPDF('gfc',doc,q.ref,q.company);
     showToast('PDF quote downloaded','success');
   }catch(err){
     showToast('PDF generation failed: '+err.message,'error');
@@ -4392,34 +4422,6 @@ function gfsDisplaySummary(){
       +lieuRows
       +'</div>'
       +'<div class="sum-sec" style="background:#FBF7F6;border-color:#E8CECE"><p style="font-size:10.5px;color:#888;line-height:1.5;margin:0">Rates shown are per member per month for each package tier. A computed group premium can be issued once membership numbers are confirmed.</p></div>';
-  } else if(false){
-    // ── CUSTOM COVER OPTIONS — cash-in-lieu at specific cover amounts ──
-    const cco=r.custom_cover_options||{corporate:[],dependent:[]};
-    const corpRows=(cco.corporate||[]).map(function(o){
-      return '<div class="sum-tier-row" style="grid-template-columns:1fr 1fr 1fr"><span>MWK '+fmt(o.cover)+'</span>'
-        +'<span>'+fmt(Math.round(o.family_monthly))+'/mo</span>'
-        +'<span>'+fmt(Math.round(o.single_monthly))+'/mo</span></div>';
-    }).join('');
-    const depRows=(cco.dependent||[]).map(function(o){
-      return '<div class="sum-row"><span>MWK '+fmt(o.cover)+' cover</span><span>'+fmt(Math.round(o.monthly))+'/mo</span></div>';
-    }).join('');
-    body=
-      '<div class="sum-sec"><div class="sum-lbl">SCHEME OVERVIEW</div>'
-      +'<div class="sum-row"><span>Company</span><span>'+Q_GFS.company+'</span></div>'
-      +'<div class="sum-row"><span>Commencement</span><span>'+Q_GFS.date+'</span></div>'
-      +'<div class="sum-row"><span>Quote Type</span><span>Custom Cover Options (Cash-in-Lieu)</span></div>'
-      +(Q_GFS.loading&&Q_GFS.loading!==0?'<div class="sum-row" style="border-top:1px dashed #EAE4DA;margin-top:4px;padding-top:4px"><span style="font-size:10.5px;color:#AAA">Int: Premium Adjustment</span><span style="color:'+(Q_GFS.loading>0?'#B44':'#1D6A45')+';font-size:11px">'+(Q_GFS.loading>0?'+':'')+Q_GFS.loading+'%</span></div>':'')
-      +'</div>'
-      +'<div class="sum-sec"><div class="sum-lbl">CORPORATE COVER OPTIONS</div>'
-      +'<div class="sum-tier-row hdr" style="grid-template-columns:1fr 1fr 1fr"><span>Cover Amount</span><span>Family Structure</span><span>Single Adult</span></div>'
-      +(corpRows||'<div class="sum-row"><span>No corporate cover amounts entered</span></div>')
-      +'</div>'
-      +'<div class="sum-sec"><div class="sum-lbl">DEPENDENT COVER OPTIONS</div>'
-      +(depRows||'<div class="sum-row"><span>No dependent cover amounts entered</span></div>')
-      +'</div>'
-      +'<div class="sum-sec" style="background:#FBF7F6;border-color:#E8CECE">'
-      +'<p style="font-size:10.5px;color:#888;line-height:1.5;margin:0">Transport costs are embedded in the cover amount — no separate transport line applies. Premiums shown are indicative, derived from the published Optional Cash Benefit rate, pending final actuarial confirmation.</p>'
-      +'</div>';
   } else {
     // ── STANDARD MODE — computed premium for the group ──
     body=
@@ -4484,6 +4486,8 @@ function gfsSaveToSheet(silent){
   const payload={
     ref:Q_GFS.ref, product:'gfs', mode:'fast',
     prepBy:(CURRENT_USER?.fullName||CURRENT_USER?.name||''),
+    preparedByUsername:CURRENT_USER?.username||CURRENT_USER?.name||'',
+    actingFAUsername:ACTING_FA?.username||'',
     company:Q_GFS.company, date:Q_GFS.date,
     n_single:Q_GFS.n_single, n_family:Q_GFS.n_family, n_extra_ch:Q_GFS.n_extra_ch,
     n_dep_u70:Q_GFS.n_dep_u70, n_dep_o70:Q_GFS.n_dep_o70,
@@ -4687,6 +4691,10 @@ function gfsBuildPDF(){
 
       const cco=r.custom_cover_options||{corporate:[],dependent:[]};
 
+      // Dynamic page-break: both tables loop over user-entered,
+      // comma-separated cover amounts of unbounded length.
+      const corpNeeded=6+5.5+(cco.corporate||[]).length*7;
+      if(y+corpNeeded > H-25){ doc.addPage(); y=20; }
       tblHdr([{label:'CORPORATE COVER OPTIONS',w:CW}]);
       const ccCols=[{key:'cover',w:CW*0.34,label:'Cover Amount (MWK)'},{key:'fam',w:CW*0.33,label:'Family Structure (MWK/mo)',r:true},{key:'sgl',w:CW-CW*0.34-CW*0.33,label:'Single Adult (MWK/mo)',r:true}];
       colHdr(ccCols);
@@ -4695,6 +4703,8 @@ function gfsBuildPDF(){
       });
       y+=4;
 
+      const depNeeded=6+5.5+(cco.dependent||[]).length*7;
+      if(y+depNeeded > H-25){ doc.addPage(); y=20; }
       tblHdr([{label:'DEPENDENT COVER OPTIONS',w:CW}]);
       const dcCols=[{key:'cover',w:CW*0.6,label:'Cover Amount (MWK)'},{key:'mo',w:CW-CW*0.6,label:'Monthly Premium (MWK)',r:true}];
       colHdr(dcCols);
@@ -4887,6 +4897,7 @@ function gfsBuildPDF(){
     }
 
     doc.save('VLA-GFS-'+(q.company||'Quote').replace(/[^A-Za-z0-9]/g,'_')+'-'+q.ref+'.pdf');
+    archiveGeneratedPDF('gfs',doc,q.ref,q.company);
     showToast('PDF quote downloaded','success');
   }catch(err){
     showToast('PDF generation failed: '+err.message,'error');
@@ -5124,6 +5135,8 @@ function gclSaveToSheet(silent){
   const payload={
     ref:Q_GCL.ref, product:'gcl', mode:'fast',
     prepBy:(CURRENT_USER?.fullName||CURRENT_USER?.name||''),
+    preparedByUsername:CURRENT_USER?.username||CURRENT_USER?.name||'',
+    actingFAUsername:ACTING_FA?.username||'',
     company:Q_GCL.company, date:Q_GCL.date, n:Q_GCL.n,
     avg_loan:Q_GCL.avg_loan, total_loan:GCL_RESULTS.total_loan||0,
     avg_term:Q_GCL.avg_term, avg_age:Q_GCL.avg_age,
@@ -5176,7 +5189,7 @@ function gclBuildPDF(){
       let cx=ML+3;
       cols.forEach(function(col){
         const txt=String(row[col.key]||'');
-        if(col.r)doc.text(txt,ML+CW-3,y+rh-2,{align:'right'});
+        if(col.r)doc.text(txt,cx+col.w-3,y+rh-2,{align:'right'});
         else doc.text(doc.splitTextToSize(txt,col.w-5)[0],cx,y+rh-2);
         cx+=col.w;
       });
@@ -5356,6 +5369,7 @@ function gclBuildPDF(){
     }
 
     doc.save('VLA-GCL-'+(q.company||'Quote').replace(/[^A-Za-z0-9]/g,'_')+'-'+q.ref+'.pdf');
+    archiveGeneratedPDF('gcl',doc,q.ref,q.company);
     showToast('PDF quote downloaded','success');
   }catch(err){
     showToast('PDF generation failed: '+err.message,'error');
@@ -5488,6 +5502,40 @@ async function loadFADropdown(){
 // If a snapshot was captured at save time (snap), that is authoritative —
 // this keeps historical PDFs showing the FA who owned the quote, not
 // whoever happens to be logged in when the PDF is regenerated later.
+// Silently archives a just-generated PDF to the central Drive store via
+// GAS. Called right after every doc.save() across all product PDF
+// builders — same "happens automatically, no extra click" pattern as
+// the existing auto-save-to-sheet calls. Failures are non-blocking:
+// the user already has their PDF locally either way, so this never
+// interrupts their flow — it only shows a toast if it fails, so a
+// silent Drive/GAS outage doesn't get lost entirely.
+async function archiveGeneratedPDF(product,doc,ref,company){
+  try{
+    const gasUrl=(ADM.gasUrl||'').trim();
+    const token=getSessionToken();
+    if(!gasUrl||!token)return; // no connection — nothing to archive against
+    const pdfBase64=doc.output('datauristring').split(',')[1];
+    const body=new URLSearchParams({
+      action:'uploadQuotePDF',
+      token:token,
+      product:product,
+      ref:ref||'',
+      company:company||'',
+      preparedBy:CURRENT_USER?.username||CURRENT_USER?.name||'',
+      actingFA:ACTING_FA?.username||'',
+      pdfBase64:pdfBase64,
+    });
+    const resp=await fetch(gasUrl,{method:'POST',body:body});
+    const data=await resp.json();
+    if(data.status!=='ok'){
+      showToast('PDF generated, but archiving failed: '+(data.message||'unknown error'),'error');
+    }
+  }catch(e){
+    // Silent — the user's local PDF download already succeeded; the
+    // central archive copy is a bonus, not a blocker.
+  }
+}
+
 function getActingSignatory(snap){
   if(Array.isArray(snap)&&snap.length===3&&snap[0])return snap;
   if(ACTING_FA){
@@ -5654,6 +5702,77 @@ function showHistory(){
   syncHistoryFromGAS();     // then refresh in the background once GAS responds
 }
 
+let PDF_ARCHIVE_CACHE=null; // last fetched archive list, re-filtered client-side on search
+
+function switchHistTab(tab){
+  const isData=tab==='data';
+  document.getElementById('hist-tab-data').classList.toggle('active',isData);
+  document.getElementById('hist-tab-archive').classList.toggle('active',!isData);
+  document.getElementById('hist-data-panel').style.display=isData?'':'none';
+  document.getElementById('hist-archive-panel').style.display=isData?'none':'';
+  document.getElementById('hist-view-title').textContent=isData?'Quote History':'PDF Archive';
+  document.getElementById('hist-view-sub').textContent=isData
+    ?'All auto-saved quotes. Click PDF to regenerate, Revise to edit in wizard.'
+    :(CURRENT_USER?.role==='fa'?'Stored PDF copies of your quotes.':'Stored PDF copies of every quote across all products.');
+  if(!isData){
+    if(PDF_ARCHIVE_CACHE)renderPdfArchive();
+    else fetchPdfArchive();
+  }
+}
+
+async function fetchPdfArchive(){
+  const listEl=document.getElementById('pdfarc-list');
+  const gasUrl=(ADM.gasUrl||'').trim();
+  const token=getSessionToken();
+  if(!gasUrl||!token){
+    if(listEl)listEl.innerHTML='<div style="text-align:center;padding:32px;color:#AAA">No GAS connection — cannot load the archive.</div>';
+    return;
+  }
+  if(listEl)listEl.innerHTML='<div style="text-align:center;padding:32px;color:#AAA">Loading archive&hellip;</div>';
+  try{
+    const resp=await fetch(gasUrl+'?action=getPdfArchive&token='+encodeURIComponent(token));
+    const data=await resp.json();
+    if(data.status==='ok'){
+      PDF_ARCHIVE_CACHE=data.files||[];
+      renderPdfArchive();
+    } else {
+      if(listEl)listEl.innerHTML='<div style="text-align:center;padding:32px;color:#B44">'+(data.message||'Failed to load archive')+'</div>';
+    }
+  }catch(e){
+    if(listEl)listEl.innerHTML='<div style="text-align:center;padding:32px;color:#B44">Failed to load archive — check connection</div>';
+  }
+}
+
+function renderPdfArchive(){
+  const listEl=document.getElementById('pdfarc-list');
+  if(!listEl||!PDF_ARCHIVE_CACHE)return;
+  const srch=(document.getElementById('pdfarc-search')?.value||'').toLowerCase();
+  const prodFilter=document.getElementById('pdfarc-product')?.value||'';
+  let files=PDF_ARCHIVE_CACHE.filter(function(f){
+    if(prodFilter&&f.product!==prodFilter)return false;
+    if(srch)return(f.company||'').toLowerCase().includes(srch)||(f.ref||'').toLowerCase().includes(srch);
+    return true;
+  });
+  const countEl=document.getElementById('pdfarc-count');
+  if(countEl)countEl.textContent=files.length+' file'+(files.length!==1?'s':'');
+  if(!files.length){
+    listEl.innerHTML='<div style="text-align:center;padding:32px;color:#AAA">No archived PDFs found.</div>';
+    return;
+  }
+  listEl.innerHTML=files.map(function(f){
+    const dt=f.savedAt?new Date(f.savedAt).toLocaleDateString('en-GB'):'—';
+    const badge=getProductBadge((f.product||'gla').toLowerCase());
+    return '<div class="qh-card">'
+      +'<div class="qh-info">'
+      +'<div class="qh-co">'+(f.company||'Unnamed')+'</div>'
+      +'<div class="qh-meta">'+badge+' &middot; '+(f.ref||'No ref')+'</div>'
+      +'<div class="qh-ts">Prepared by '+(f.preparedBy||'—')+(f.actingFA?' (on behalf of '+f.actingFA+')':'')+' &middot; '+dt+'</div>'
+      +'</div>'
+      +'<div class="qh-acts"><a class="qb pdf" href="'+f.url+'" target="_blank" rel="noopener">&#128196; Open PDF</a></div>'
+      +'</div>';
+  }).join('');
+}
+
 async function syncHistoryFromGAS(){
   if(!ADM.gasUrl||location.protocol==='file:'||!navigator.onLine)return;
   const rows=await gasFetchQuotes();
@@ -5688,7 +5807,7 @@ function buildMergedHistory(){
       id:'gas_'+(row.ref||row.savedAt||Math.random()),
       mode:row.mode||'fast',
       source:'gas',
-      product:(String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':'gla',
+      product:row.product||((String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':'gla'),
       hasFullData:!!row.hasFullData,
       savedAt:row.savedAt,
       q:{company:row.company,ref:row.ref,mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector,prepby:row.prepBy},
@@ -5721,7 +5840,7 @@ async function retroSyncAll(){
     const id='gas_sync_'+(row.ref||row.savedAt||Date.now()+'_'+Math.random());
     const entry={
       id,mode:row.mode||'fast',source:'gas',gasSync:true,
-      product:(String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':'gla',
+      product:row.product||((String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':'gla'),
       savedAt:row.savedAt||new Date().toISOString(),
       q:{company:row.company,ref:row.ref||'',mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector||'FIN',prepby:row.prepBy||''},
       results:{total_pa:row.annualPremium,total_pm:Math.round(row.annualPremium/12),per_mb:0,rate_pct:0,options:[],gla:0,funeral:0,ci:0,dis:0,ad:0,sp:0,nMem:row.nMembers,avgAge:0,totSal:row.payroll||0},
