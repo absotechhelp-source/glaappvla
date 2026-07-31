@@ -136,7 +136,20 @@ function checkLicence() {
 }
 
 // ── Boot ─────────────────────────────────────────────────────────
+// injectLicenceBanners() must only run once (it creates the banner
+// elements), so it stays on DOMContentLoaded.
 document.addEventListener('DOMContentLoaded', function () {
   injectLicenceBanners();
+  checkLicence();
+});
+
+// The main app's own window.onload handler (in index.html) unconditionally
+// re-enables the Sign In button and resets its label to "Sign In" once
+// everything has finished loading — which runs AFTER DOMContentLoaded and
+// would otherwise silently undo an expired/locked state a moment after
+// this script first set it. Re-running checkLicence() on 'load' — via
+// addEventListener, so it adds a second listener rather than replacing
+// index.html's window.onload — guarantees this check has the final word.
+window.addEventListener('load', function () {
   checkLicence();
 });
