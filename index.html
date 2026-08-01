@@ -5574,6 +5574,56 @@ function clearSession(){
   CURRENT_USER=null;
 }
 
+/* ═══════════════════════════════════════════════════════
+   IDLE TIMEOUT — signs the user out after a period of no
+   interaction, independent of the 12-hour session token
+   expiry enforced server-side (that one is a flat deadline
+   from login time; this one resets on activity).
+   Uses a real-clock deadline (Date.now()-based) rather than
+   relying on a single setTimeout, and re-checks it on
+   visibilitychange — so a backgrounded/throttled tab still
+   logs out at the right moment the instant it's foregrounded
+   again, instead of drifting or missing the deadline while
+   hidden. Mirrors the pattern used in the Annuity App.
+═══════════════════════════════════════════════════════ */
+const IDLE_TIMEOUT_MS = 20*60*1000; // 20 minutes of no interaction — adjust as needed
+const IDLE_ACTIVITY_EVENTS = ['mousedown','mousemove','keydown','touchstart','scroll','click'];
+let idleDeadline = null;
+let idleCheckHandle = null;
+
+function resetIdleDeadline(){
+  if(idleDeadline!==null) idleDeadline = Date.now() + IDLE_TIMEOUT_MS;
+}
+
+function checkIdleDeadline(){
+  if(idleDeadline!==null && Date.now() >= idleDeadline) idleLogout();
+}
+
+function onIdleVisibilityChange(){
+  if(document.visibilityState==='visible') checkIdleDeadline();
+}
+
+function startIdleTimer(){
+  idleDeadline = Date.now() + IDLE_TIMEOUT_MS;
+  if(idleCheckHandle) clearInterval(idleCheckHandle);
+  idleCheckHandle = setInterval(checkIdleDeadline, 15000); // poll every 15s; visibilitychange covers the gaps
+  IDLE_ACTIVITY_EVENTS.forEach(function(evt){ document.addEventListener(evt, resetIdleDeadline, {passive:true}); });
+  document.addEventListener('visibilitychange', onIdleVisibilityChange);
+}
+
+function stopIdleTimer(){
+  idleDeadline = null;
+  if(idleCheckHandle){ clearInterval(idleCheckHandle); idleCheckHandle = null; }
+  IDLE_ACTIVITY_EVENTS.forEach(function(evt){ document.removeEventListener(evt, resetIdleDeadline); });
+  document.removeEventListener('visibilitychange', onIdleVisibilityChange);
+}
+
+function idleLogout(){
+  doLogout();
+  const err=document.getElementById('login-err');
+  if(err){ err.textContent='You were signed out after a period of inactivity.'; err.style.display='block'; }
+}
+
 // Shared GAS call helper. Every action except 'login' automatically
 // carries the session token; if GAS reports the session has expired,
 // the local session is cleared and the user is sent back to the login
@@ -5672,6 +5722,7 @@ async function doLogin(){
     }
     applyRoleUI(user.role||'ts');
     showHome();
+    startIdleTimer();
     err.style.display='none';
   } else {
     err.textContent=res.message||'Incorrect username or password.';
@@ -5682,6 +5733,7 @@ async function doLogin(){
 }
 
 function doLogout(){
+  stopIdleTimer();
   clearSession();
   document.getElementById('app-layout').style.display='none';
   document.getElementById('login-screen').style.display='flex';
@@ -6931,6 +6983,7 @@ window.onload=function(){
     }
     applyRoleUI(_usr.role||'ts');
     showHome();
+    startIdleTimer();
   }
   // Ping GAS in background (non-blocking)
   if(ADM.gasUrl)setTimeout(pingGASOnLoad,1000);
