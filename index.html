@@ -576,7 +576,6 @@ input,select{min-height:38px}
             <div class="prod-tile-sub">Standard, Executive &amp; VIP service packages</div>
           </div>
           <div class="prod-tile lp" onclick="openProductSheet('lp')">
-            <span class="soon-tag">Coming Soon</span>
             <span class="prod-tile-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="10" rx="2" fill="#641414" fill-opacity=".12" stroke="#641414" stroke-width="1.75"/><path d="M8 11V7a4 4 0 018 0v4" stroke="#641414" stroke-width="1.75" stroke-linecap="round"/><circle cx="12" cy="16" r="1.5" fill="#641414"/></svg></span>
             <div class="prod-tile-name">Loan Protection</div>
             <div class="prod-tile-sub">Credit Life and Retrenchment &amp; Abscondence</div>
@@ -1168,6 +1167,111 @@ input,select{min-height:38px}
           <button class="btn primary" id="gcl-nav-next" onclick="navNextGCL()">Next &rarr;</button>
         </div>
       </div><!-- view-wizard-gcl -->
+
+      <div class="view" id="view-wizard-ret">
+        <div class="wiz-back" onclick="showHome()">&#8592; Back to quotes</div>
+        <div class="pbar" id="ret-pbar">
+          <div class="pi on" id="ret-pi1"><div class="pdot">1</div><span class="plbl">Client</span></div>
+          <div class="pline"></div>
+          <div class="pi" id="ret-pi2"><div class="pdot">2</div><span class="plbl">Loan Book</span></div>
+          <div class="pline"></div>
+          <div class="pi" id="ret-pi3"><div class="pdot">3</div><span class="plbl">Options</span></div>
+          <div class="pline"></div>
+          <div class="pi" id="ret-pi4"><div class="pdot">4</div><span class="plbl">Summary</span></div>
+        </div>
+        <div class="step-card">
+          <div class="step-hdr">
+            <h2 id="ret-step-title">Client Details</h2>
+            <span class="mbadge">Retrenchment &amp; Abscondence</span>
+          </div>
+          <div class="step-body">
+
+            <!-- RET STEP 1 — Client Details -->
+            <div class="step on" id="ret-s1">
+              <div class="fg">
+                <div class="fld" id="fa-sel-field-ret" style="display:none">
+                  <label>Quote on Behalf of (Financial Advisor)</label>
+                  <select id="ret-fa-select" onchange="onFASelect('ret')">
+                    <option value="">&mdash; Myself &mdash;</option>
+                  </select>
+                  <span class="fld-note">Select the FA this quote is being prepared for. Defaults to yourself if left blank.</span>
+                </div>
+                <div class="fld"><label>Lender / Institution Name *</label>
+                  <input id="ret-company" placeholder="e.g. LOLC Finance Ltd"></div>
+                <div class="fld"><label>Physical Address</label>
+                  <input id="ret-address" placeholder="e.g. Victoria Avenue, Blantyre"></div>
+                <div class="fld"><label>City</label>
+                  <input id="ret-city" placeholder="Blantyre" value="Blantyre"></div>
+                <div class="fld"><label>Commencement Date *</label>
+                  <input id="ret-date" type="date"></div>
+                <div class="fld"><label>Quote Reference</label>
+                  <input id="ret-ref" placeholder="Auto-generated if blank"></div>
+              </div>
+              <div id="ret-s1-err"></div>
+            </div>
+
+            <!-- RET STEP 2 — Loan Book -->
+            <div class="step" id="ret-s2">
+              <div class="fg">
+                <div class="fld"><label>Number of Borrowers *</label>
+                  <input id="ret-n" type="number" min="1" placeholder="e.g. 500"></div>
+                <div class="fld"><label>Average Loan Amount (MWK) *</label>
+                  <input id="ret-avg-loan" type="number" min="0" step="10000" placeholder="e.g. 1,000,000"></div>
+                <div class="fld"><label>Total Loan Book (MWK) <span class="opt-lbl">Optional</span></label>
+                  <input id="ret-total-loan" type="number" min="0" step="100000" placeholder="Defaults to Borrowers × Average Loan">
+                  <span class="fld-note">Used to express the premium as a rate on the total book. If left blank, calculated from borrowers × average loan.</span></div>
+                <div class="fld"><label>Average Loan Term (months) *</label>
+                  <input id="ret-avg-term" type="number" min="1" max="60" value="36"></div>
+                <div class="fld"><label>Average Monthly Instalment (MWK) <span class="opt-lbl">Optional</span></label>
+                  <input id="ret-avg-inst" type="number" min="0" step="1000" placeholder="Defaults to Average Loan ÷ Term">
+                  <span class="fld-note">Used to size the retrenchment benefit (6 months of instalments). If left blank, estimated from loan ÷ term.</span></div>
+              </div>
+              <div id="ret-s2-err"></div>
+            </div>
+
+            <!-- RET STEP 3 — Options -->
+            <div class="step" id="ret-s3">
+              <div class="fg">
+                <div class="fld">
+                  <label><input type="checkbox" id="ret-inc-abs" style="width:auto;margin-right:8px;vertical-align:middle">Abscondence Rider</label>
+                  <span class="fld-note">Add-on cover if the borrower absconds after a qualifying period of missed contact.</span>
+                </div>
+                <div class="fld"><label>Payment Mode *</label>
+                  <select id="ret-payment-mode">
+                    <option value="oncoff">Once-off (single premium at disbursement)</option>
+                    <option value="monthly">Monthly collection (added to instalment)</option>
+                  </select>
+                </div>
+                <div class="fld" style="padding-top:10px;border-top:1px solid #EAE4DA">
+                  <label>Premium Adjustment <span class="opt-lbl">Optional</span></label>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <input id="ret-loading" type="number" min="-50" max="100" step="0.5" value="0" style="width:80px">
+                    <span style="font-size:12px;color:#888">% &nbsp;&mdash;&nbsp; positive = loading &nbsp;|&nbsp; negative = discount</span>
+                  </div>
+                </div>
+              </div>
+              <div id="ret-s3-err"></div>
+            </div>
+
+            <!-- RET STEP 4 — Summary -->
+            <div class="step" id="ret-s4">
+              <div id="ret-summary-content">
+                <div style="text-align:center;padding:40px 20px">
+                  <div class="spin" style="margin:0 auto 14px"></div>
+                  <p style="color:#641414;font-size:14px;font-weight:700">Calculating your premium&hellip;</p>
+                  <p style="color:#AAA;font-size:12px">Connecting to GAS pricing engine</p>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- step-body -->
+        </div><!-- step-card -->
+        <div class="step-nav">
+          <button class="btn" id="ret-nav-back" onclick="navBackRET()">&#8592; Back</button>
+          <div class="sp"></div>
+          <button class="btn primary" id="ret-nav-next" onclick="navNextRET()">Next &rarr;</button>
+        </div>
+      </div><!-- view-wizard-ret -->
 
       <!-- HISTORY VIEW -->
       <div class="view" id="view-history">
@@ -1830,7 +1934,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
 // They are NEVER used for pricing — calc always runs in GAS.
 const _SECTORS_FALLBACK={FIN:{l:'Financial Services / Professional',f:1.00},RET:{l:'Retail / Wholesale Trade',f:1.05},MAN:{l:'Manufacturing / Light Industry',f:1.10},TRN:{l:'Transport / Logistics',f:1.20},CON:{l:'Construction / Civil Engineering',f:1.30},AGR:{l:'Agriculture / Farming',f:1.25},MIN:{l:'Mining / Quarrying',f:1.50},HEA:{l:'Healthcare / Medical',f:1.05},EDU:{l:'Education / Public Sector',f:1.00},SEC:{l:'Security / Protective Services',f:1.35}};
 const _TIERS_FALLBACK=[{l:'Small (<50)',n:1,maxD:0.05,maxL:0.25},{l:'Small-Med (50-99)',n:50,maxD:0.08,maxL:0.20},{l:'Medium (100-199)',n:100,maxD:0.15,maxL:0.15},{l:'Med-Large (200-499)',n:200,maxD:0.20,maxL:0.12},{l:'Large (500-999)',n:500,maxD:0.25,maxL:0.10},{l:'Very Large (1000+)',n:1000,maxD:0.30,maxL:0.08}];
-const _ADM_FALLBACK={expDiv:1.20,ciLoad:0.20,disFac:0.40,adFac:0.10,spSetback:3,parentOffset:20,childMort:0.003,ciMaxAge:75,validDays:30,funeralMin:500000,funeralMax:20000000};
+// GLA's actuarial engine parameters carry independent Fast Quote / Full
+// Quote variants (_fast / _full) — same rate tables, but admin-tunable
+// separately per mode. Both variants start from the same value here; an
+// admin splits them apart via Admin Settings once this is live.
+const _ADM_FALLBACK={
+  expDiv_fast:1.20,expDiv_full:1.20,
+  ciLoad_fast:0.20,ciLoad_full:0.20,
+  disFac_fast:0.40,disFac_full:0.40,
+  adFac_fast:0.10,adFac_full:0.10,
+  spSetback_fast:3,spSetback_full:3,
+  parentOffset_fast:20,parentOffset_full:20,
+  childMort_fast:0.003,childMort_full:0.003,
+  ciMaxAge_fast:75,ciMaxAge_full:75,
+  edu_discount_rate_fast:0.15,edu_discount_rate_full:0.15,
+  validDays:30,funeralMin:500000,funeralMax:20000000,
+};
 let SECTORS={..._SECTORS_FALLBACK};  // replaced by GAS on connect
 let TIERS=[..._TIERS_FALLBACK];      // replaced by GAS on connect
 let GAS_DEFAULTS=null;               // set once getConfig succeeds; drives resetAdmin
@@ -1884,7 +2003,7 @@ const PRODUCT_META={
   gfs:{label:'Funeral Services',     short:'GFS', desc:'Standard, Executive & VIP service packages', ready:true},
   lp: {label:'Loan Protection',      short:'LP',  desc:'Credit Life and Retrenchment & Abscondence', ready:false},
   gcl:{label:'Credit Life',          short:'GCL', desc:'Loan protection with CI, hospitalisation & funeral riders', ready:true},
-  ret:{label:'Retrenchment & Abscondence', short:'RET', desc:'Loan protection — once-off or monthly premium', ready:false},
+  ret:{label:'Retrenchment & Abscondence', short:'RET', desc:'Loan protection — once-off or monthly premium', ready:true},
 };
 let ADM=(()=>{
   const saved=JSON.parse(localStorage.getItem('vla_gla_adm')||'null')||{};
@@ -1912,21 +2031,28 @@ let SAVED_QUOTES=JSON.parse(localStorage.getItem('vla_gla_saved')||'[]');
   }catch(e){}
 })();
 
-const Q={
-  company:'',city:'',ref:'',prepby:'',date:'',
-  n:'',sal:'',age:'',pf:0.17,sec:'FIN',
-  mult:3,
-  inc_funeral:true,f_scope:'member_and_dependants',f_mBen:3000000,f_nCh:2,f_cPct:0.50,f_nPar:0,f_pPct:0.25,
-  funeral_mode:'single',funeral_categories:[],
-  inc_ci:true,ci_cap:'100_pct',
-  inc_dis:true,dis_cap:'follow_gla',
-  inc_ad:true,
-  inc_sp:true,sp_pct:0.50,sp_mar:0.50,
-  inc_adb:false,adb_accel_pct:0.20,
-  inc_edu:false,edu_fee_annual:500000,edu_max_children:3,edu_max_years:6,edu_discount_rate:0.15,edu_pct_with_kids:'auto',edu_avg_kids:'auto',
-  disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,
-  coverAll:true
-};
+// Single source of truth for a blank GLA quote — used both to seed Q at
+// load time and to fully reset it (startQuote / reviseQuote) so no field
+// from a previous quote can ever bleed into the next one via the merge-only
+// Object.assign() pattern used elsewhere in this file.
+function defaultQ(){
+  return {
+    company:'',city:'',ref:'',prepby:'',date:'',
+    n:'',sal:'',age:'',pf:0.17,sec:'FIN',
+    mult:3,
+    inc_funeral:true,f_scope:'member_and_dependants',f_mBen:3000000,f_nCh:2,f_cPct:0.50,f_nPar:0,f_pPct:0.25,
+    funeral_mode:'single',funeral_categories:[],
+    inc_ci:true,ci_cap:'100_pct',
+    inc_dis:true,dis_cap:'follow_gla',
+    inc_ad:true,
+    inc_sp:true,sp_pct:0.50,sp_mar:0.50,
+    inc_adb:false,adb_accel_pct:0.20,
+    inc_edu:false,edu_fee_annual:500000,edu_max_children:3,edu_max_years:6,edu_discount_rate:0.15,edu_pct_with_kids:'auto',edu_avg_kids:'auto',
+    disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,
+    coverAll:true,coverRange:'all',
+  };
+}
+const Q=defaultQ();
 
 /* ═══════════════════════════════════════════════════════
    PRICING ENGINE
@@ -2491,8 +2617,8 @@ function validateStep(n){
     sel.forEach((m,i)=>{
       const age=parseDOB(m.dob,comm);const sal=+m.salary||0;
       if(!age||age<16||age>80||sal<=0)return;
-      if(age>ADM.ciMaxAge)ciEx++;
-      ok.push({id:i+1,gender:m.gender||'M',age_nearest:age,annual_salary:sal,name:m.name||'',ci_excluded:age>ADM.ciMaxAge});
+      if(age>ADM.ciMaxAge_full)ciEx++;
+      ok.push({id:i+1,gender:m.gender||'M',age_nearest:age,annual_salary:sal,name:m.name||'',ci_excluded:age>ADM.ciMaxAge_full});
     });
     if(!ok.length){showErr('s2c-err','No valid members selected. Check ages (16–80) and salaries.');return false;}
     MEMBERS=ok;
@@ -3033,14 +3159,14 @@ function parseCensus(file){
         if(!gender){errs.push(`Row ${rn}: invalid gender`);skip++;return;}
         if(!age||age<16||age>80){errs.push(`Row ${rn}: age ${age} out of range (16–80)`);skip++;return;}
         if(!sal||sal<=0){errs.push(`Row ${rn}: invalid salary`);skip++;return;}
-        if(age>ADM.ciMaxAge)ciEx++;
-        ok.push({id:ok.length+1,gender,age_nearest:age,annual_salary:sal,ci_excluded:age>ADM.ciMaxAge});
+        if(age>ADM.ciMaxAge_full)ciEx++;
+        ok.push({id:ok.length+1,gender,age_nearest:age,annual_salary:sal,ci_excluded:age>ADM.ciMaxAge_full});
       });
       if(!ok.length){showMsg('cparse-err','No valid rows. '+errs.slice(0,3).join('; '));return;}
       const warns=[];
       if(skip)warns.push(`${skip} row(s) skipped. ${errs.slice(0,2).join('; ')}${errs.length>2?'…':''}`);
       if(ok.length>500)warns.push(`Large census (${ok.length} members) — may take a moment to price.`);
-      if(ciEx)warns.push(`${ciEx} member(s) over age ${ADM.ciMaxAge} excluded from CI cover.`);
+      if(ciEx)warns.push(`${ciEx} member(s) over age ${ADM.ciMaxAge_full} excluded from CI cover.`);
       if(warns.length)showMsg('cparse-warn',warns.join(' | '));
       MEMBERS=ok;RESULTS=null;
       // Update dropzone
@@ -3140,16 +3266,29 @@ function renderSavedList(){
    ADMIN SETTINGS
 ═══════════════════════════════════════════════════════ */
 const ADM_META=[
-  // ── GLA — Actuarial Engine ─────────────────────────────────────────────
-  ['expDiv',           'GLA — Expense Loading Divisor',     0.50, 1.50, 0.01,   'Core GLA rate divisor: loaded_rate = net_rate ÷ expDiv. Default: 1.20'],
-  ['ciLoad',           'GLA — CI Rate Loading Stripper',    0.10, 0.40, 0.01,   'CI table embedded loading stripped before pricing. Default: 0.20'],
-  ['disFac',           'GLA — Disability Rate Factor',      0.20, 0.65, 0.01,   'TPD as fraction of blended net CI rate. Default: 0.40'],
-  ['adFac',            'GLA — Accidental Death Factor',     0.05, 0.25, 0.01,   'Flat % of loaded GLA premium. Default: 0.10'],
-  ['spSetback',        'GLA — Spouse Age Setback (yrs)',    0,    6,    1,      'Years deducted from member age for spouse proxy. Default: 3'],
-  ['parentOffset',     'GLA — Parent Age Offset (yrs)',     15,   25,   1,      'Years added to member age for parent proxy. Default: 20'],
-  ['childMort',        'GLA — Child Mortality Rate',        0.001,0.010,0.001,  'Annual risk coefficient per unit of child SA. Default: 0.003'],
-  ['ciMaxAge',         'GLA — CI/TPD Max Cover Age',        60,   80,   1,      'Above this age excluded from CI/TPD. Default: 75'],
-  ['edu_discount_rate','GLA — Education Discount Rate',     0.05, 0.30, 0.01,   'Annuity-due discount rate for Education Cover. Default: 0.15'],
+  // ── GLA — Actuarial Engine: FAST QUOTE ──────────────────────────────────
+  // Fast and Full Quote price the same product off independent copies of
+  // every engine parameter — same rate tables, but each mode's loadings,
+  // caps and age proxies can be tuned separately.
+  ['expDiv_fast',           'GLA Fast — Expense Loading Divisor',     0.50, 1.50, 0.01,   'Core GLA rate divisor for Fast Quote: loaded_rate = net_rate ÷ expDiv. Default: 1.20'],
+  ['ciLoad_fast',           'GLA Fast — CI Rate Loading Stripper',    0.10, 0.40, 0.01,   'CI table embedded loading stripped before pricing. Default: 0.20'],
+  ['disFac_fast',           'GLA Fast — Disability Rate Factor',      0.20, 0.65, 0.01,   'TPD as fraction of blended net CI rate. Default: 0.40'],
+  ['adFac_fast',            'GLA Fast — Accidental Death Factor',     0.05, 0.25, 0.01,   'Flat % of loaded GLA premium. Default: 0.10'],
+  ['spSetback_fast',        'GLA Fast — Spouse Age Setback (yrs)',    0,    6,    1,      'Years deducted from member age for spouse proxy. Default: 3'],
+  ['parentOffset_fast',     'GLA Fast — Parent Age Offset (yrs)',     15,   25,   1,      'Years added to member age for parent proxy. Default: 20'],
+  ['childMort_fast',        'GLA Fast — Child Mortality Rate',        0.001,0.010,0.001,  'Annual risk coefficient per unit of child SA. Default: 0.003'],
+  ['ciMaxAge_fast',         'GLA Fast — CI/TPD Max Cover Age',        60,   80,   1,      'Above this age excluded from CI/TPD. Default: 75'],
+  ['edu_discount_rate_fast','GLA Fast — Education Discount Rate',     0.05, 0.30, 0.01,   'Annuity-due discount rate for Education Cover. Default: 0.15'],
+  // ── GLA — Actuarial Engine: FULL QUOTE (Census) ─────────────────────────
+  ['expDiv_full',           'GLA Full — Expense Loading Divisor',     0.50, 1.50, 0.01,   'Core GLA rate divisor for Full Quote: loaded_rate = net_rate ÷ expDiv. Default: 1.20'],
+  ['ciLoad_full',           'GLA Full — CI Rate Loading Stripper',    0.10, 0.40, 0.01,   'CI table embedded loading stripped before pricing. Default: 0.20'],
+  ['disFac_full',           'GLA Full — Disability Rate Factor',      0.20, 0.65, 0.01,   'TPD as fraction of blended net CI rate. Default: 0.40'],
+  ['adFac_full',            'GLA Full — Accidental Death Factor',     0.05, 0.25, 0.01,   'Flat % of loaded GLA premium. Default: 0.10'],
+  ['spSetback_full',        'GLA Full — Spouse Age Setback (yrs)',    0,    6,    1,      'Years deducted from member age for spouse proxy. Default: 3'],
+  ['parentOffset_full',     'GLA Full — Parent Age Offset (yrs)',     15,   25,   1,      'Years added to member age for parent proxy. Default: 20'],
+  ['childMort_full',        'GLA Full — Child Mortality Rate',        0.001,0.010,0.001,  'Annual risk coefficient per unit of child SA. Default: 0.003'],
+  ['ciMaxAge_full',         'GLA Full — CI/TPD Max Cover Age',        60,   80,   1,      'Above this age excluded from CI/TPD. Default: 75'],
+  ['edu_discount_rate_full','GLA Full — Education Discount Rate',     0.05, 0.30, 0.01,   'Annuity-due discount rate for Education Cover. Default: 0.15'],
   // ── GLA — Product / UI ─────────────────────────────────────────────────
   ['validDays',        'GLA — Quote Validity (days)',       14,   90,   1,      'Days before PDF quote expires. Default: 30'],
   ['funeralMin',       'GLA — Min Funeral Benefit (MWK)',   500000,  2000000,  500000, 'Wizard lower bound. Default: 500,000'],
@@ -3197,12 +3336,16 @@ function renderAdminFields(){
     ?'<p style="font-size:11px;color:#1D6A45;background:#E8F5E9;border:1px solid #A5D6A7;padding:7px 10px;border-radius:4px;margin-bottom:12px">&#10003; Parameters are sent live to the GAS engine on every quote. Changes take effect immediately.</p>'
     :'<p style="font-size:11px;color:#888;background:#F5F5F5;border:1px solid #DDD;padding:7px 10px;border-radius:4px;margin-bottom:12px">&#8505; Admin role required to modify engine parameters.</p>';
   const sectionHdrs={
-    expDiv:'GLA — Group Life Assurance',validDays:'GLA — Product / UI',
+    expDiv_fast:'GLA — Fast Quote Engine',expDiv_full:'GLA — Full Quote (Census) Engine',
+    validDays:'GLA — Product / UI',
     gfc_expDiv:'GFC — Group Funeral Cover',gfs_single_std:'GFS — Funeral Services',
     gcl_baseRate:'GCL — Group Credit Life',ret_rateMonthly:'RET — Retrenchment & Abscondence'
   };
-  const engineKeys=['expDiv','ciLoad','disFac','adFac','spSetback','parentOffset',
-    'childMort','ciMaxAge','edu_discount_rate','gfc_expDiv','gfc_parentLoad','gfc_commission',
+  const engineKeys=['expDiv_fast','ciLoad_fast','disFac_fast','adFac_fast','spSetback_fast','parentOffset_fast',
+    'childMort_fast','ciMaxAge_fast','edu_discount_rate_fast',
+    'expDiv_full','ciLoad_full','disFac_full','adFac_full','spSetback_full','parentOffset_full',
+    'childMort_full','ciMaxAge_full','edu_discount_rate_full',
+    'gfc_expDiv','gfc_parentLoad','gfc_commission',
     'gfs_single_std','gfs_single_exe','gfs_single_vip','gfs_family_std','gfs_family_exe',
     'gfs_family_vip','gfs_commission','gcl_baseRate','gcl_minRate','gcl_ciRiderPct',
     'gcl_hospPa','gcl_commission','gcl_maxAge','ret_rateMonthly','ret_absRateMonthly',
@@ -3324,7 +3467,7 @@ function openProductSheet(prod){
         +'<div class="bs-opt-icon">'+_BS_ICONS.gcl+'</div>'
         +'<div><div class="bs-opt-title">Credit Life</div><div class="bs-opt-sub">Single-premium loan protection with CI, hospitalisation &amp; funeral riders</div></div>'
         +'<span class="bs-opt-arr">›</span></div>'
-      +'<div class="bs-opt soon" onclick="showToast(\'Retrenchment quoting — available in the next release\',\'info\',4000)">'
+      +'<div class="bs-opt" onclick="closeProductSheet();startRETWizard()">'
         +'<div class="bs-opt-icon">'+_BS_ICONS.ret+'</div>'
         +'<div><div class="bs-opt-title">Retrenchment &amp; Abscondence</div><div class="bs-opt-sub">Once-off or monthly premium — 6-month instalment benefit</div></div>'
         +'<span class="bs-opt-arr">›</span></div>';
@@ -3365,14 +3508,17 @@ function startProduct(prod){openProductSheet(prod);}  // backward compat alias
 /* ═══════════════════════════════════════════════════════
    GFC — GROUP FUNERAL COVER WIZARD
 ════════════════════════════════════════════════════════ */
-let Q_GFC={
-  company:'',address:'',city:'Blantyre',date:'',ref:'',
-  n:100,avg_age:35,pf:40,sal_bill:0,
-  f_mBen:1000000,f_scope:'member_family',
-  f_nCh:2,f_cPct:50,f_nPar:1,f_pPct:25,
-  use_tiers:false,tiers:[],
-  loading:0,  // premium adjustment % (+loading / -discount)
-};
+function defaultQGFC(){
+  return {
+    company:'',address:'',city:'Blantyre',date:'',ref:'',
+    n:100,avg_age:35,pf:40,sal_bill:0,
+    f_mBen:1000000,f_scope:'member_family',
+    f_nCh:2,f_cPct:50,f_nPar:1,f_pPct:25,
+    use_tiers:false,tiers:[],
+    loading:0,  // premium adjustment % (+loading / -discount)
+  };
+}
+let Q_GFC=defaultQGFC();
 let GFC_STEP=1, GFC_RESULTS=null, GFC_COMPUTING=false, GFC_MODE='fast';
 const GFC_STEP_TITLES=['Client Details','Membership Details','Benefit Structure','Quote Summary'];
 
@@ -3380,6 +3526,10 @@ function startGFCWizard(mode){
   PRODUCT='gfc';
   GFC_MODE=mode||'fast';
   GFC_STEP=1; GFC_RESULTS=null; GFC_COMPUTING=false;
+  MEMBERS=[]; // GFC full mode's census list also lives in the shared MEMBERS array
+  // Full reset (not a merge) so nothing from whatever quote was last open
+  // in this wizard can leak into the new one
+  Object.assign(Q_GFC,defaultQGFC());
   Q_GFC.date=new Date().toISOString().split('T')[0];
   Q_GFC.ref='gfc_'+Date.now();
   ACTING_FA=null;
@@ -3463,37 +3613,37 @@ function gfcShowStep(n){
 
 function setV(id,val){const el=document.getElementById(id);if(el&&val!==undefined&&val!==null)el.value=val;}
 
+// Mirrors GLA's renderMDB() exactly — same MDB_SEL/getMDB() backing store,
+// same company-scoped MDB_CONTEXT, just targeting the gfc-mdb-* DOM ids.
+// Previously this read from a global (MDB_LIST) that was never assigned
+// anywhere in the app and matched selection by MEMBERS[].id — completely
+// disconnected from the Select All / Clear / Import / +Member buttons on
+// this same step, which have always driven MDB_SEL + the shared Member
+// Database. That meant the census table here always rendered empty (or
+// threw on a checkbox click), while those buttons silently edited a
+// member list nothing on screen ever reflected.
 function renderGFCMDB(){
+  MDB_CONTEXT=mdbKeyFor(Q_GFC.company);
+  const db=getMDB();
+  const comm=Q_GFC.date||new Date().toISOString().slice(0,10);
   const srch=(document.getElementById('gfc-mdb-search')?.value||'').toLowerCase();
   const tbody=document.getElementById('gfc-mdb-tbody');
   const info=document.getElementById('gfc-mdb-info');
   if(!tbody)return;
-  const list=MDB_LIST||[];
-  const filtered=list.filter(function(m){
-    return !srch||(m.name||'').toLowerCase().includes(srch);
-  });
-  tbody.innerHTML=filtered.map(function(m,i){
-    const sel=MEMBERS.some(function(x){return x.id===m.id;});
-    const age=m.age_nearest||'—';
-    return '<tr class="mdb-row'+(sel?' sel':'')+'"><td><input type="checkbox" '+(sel?'checked':'')
-      +' onchange="gfcToggleMember(\''+m.id+'\',this.checked);renderGFCMDB()"></td>'
-      +'<td>'+(i+1)+'</td><td>'+((m.name||'Unnamed'))+'</td><td>'+(m.gender||'—')+'</td>'
-      +'<td>'+age+'</td><td class="r">'+(m.annual_salary?fmt(m.annual_salary):'—')+'</td>'
+  const rows=db.map((m,i)=>({...m,_i:i})).filter(m=>!srch||(m.name||'').toLowerCase().includes(srch)||m.gender?.toLowerCase()===srch.slice(0,1));
+  tbody.innerHTML=rows.length?rows.map(function(m){
+    const age=parseDOB(m.dob,comm)||'—';
+    return '<tr class="mdb-row'+(MDB_SEL.has(m._i)?' sel':'')+'"><td><input type="checkbox" '+(MDB_SEL.has(m._i)?'checked':'')
+      +' onchange="toggleMDB('+m._i+',this.checked);renderGFCMDB()"></td>'
+      +'<td>'+(m._i+1)+'</td><td>'+(m.name||'Unnamed')+'</td><td>'+(m.gender||'—')+'</td>'
+      +'<td>'+age+'</td><td class="r">'+(m.salary?fmt(+m.salary):'—')+'</td>'
       +'<td></td></tr>';
-  }).join('');
-  const selCount=MEMBERS.length;
-  if(info)info.textContent=filtered.length===0?'No members — import a census or add individually'
-    :selCount+' of '+list.length+' members selected for this quote';
-  // update select-all checkbox
+  }).join('')
+  :'<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--T3)">'+
+    (db.length?'No matches':'No members — import a census or add individually')+'</td></tr>';
+  if(info)info.textContent=MDB_SEL.size>0?MDB_SEL.size+' of '+db.length+' member(s) selected for this quote':'Select members to include in this quote';
   const ca=document.getElementById('gfc-mdb-all');
-  if(ca)ca.checked=selCount===list.length&&list.length>0;
-}
-
-function gfcToggleMember(id,checked){
-  const m=MDB_LIST.find(function(x){return x.id===id;});
-  if(!m)return;
-  if(checked&&!MEMBERS.some(function(x){return x.id===id;})){MEMBERS.push(m);}
-  else if(!checked){MEMBERS=MEMBERS.filter(function(x){return x.id!==id;});}
+  if(ca)ca.checked=rows.length>0&&rows.every(m=>MDB_SEL.has(m._i));
 }
 
 function gfcBenChange(){
@@ -3590,9 +3740,25 @@ function gfcValidateStep(n){
   }
   if(n===2){
     if(GFC_MODE==='full'){
-      if(!MEMBERS||MEMBERS.length<1){gfcShowErr('gfc-s2f-err','Select at least one member from the census');return false;}
+      // Commit the ticked rows into MEMBERS here, at Next-time — mirrors
+      // GLA's validateStep(2) full-mode exactly, and is the missing half
+      // of the fix above: renderGFCMDB() shows what's ticked in MDB_SEL,
+      // this is what actually turns that selection into the census used
+      // to price the quote.
+      const db=getMDB();
+      const sel=Array.from(MDB_SEL).map(i=>db[i]).filter(Boolean);
+      if(!sel.length){gfcShowErr('gfc-s2f-err','Select at least one member from the database to continue.');return false;}
+      const comm=Q_GFC.date||new Date().toISOString().slice(0,10);
+      const ok=[];
+      sel.forEach(function(m,i){
+        const age=parseDOB(m.dob,comm);
+        if(!age||age<16||age>80)return;
+        ok.push({id:i+1,gender:m.gender||'M',age_nearest:age,annual_salary:+m.salary||0,name:m.name||''});
+      });
+      if(!ok.length){gfcShowErr('gfc-s2f-err','No valid members selected. Check dates of birth (age 16–80).');return false;}
       gfcClearErr('gfc-s2f-err');
-      const ages=MEMBERS.map(function(m){return +m.age_nearest||35;});
+      MEMBERS=ok;
+      const ages=MEMBERS.map(function(m){return m.age_nearest;});
       Q_GFC.n=MEMBERS.length;
       Q_GFC.avg_age=Math.round(ages.reduce(function(a,b){return a+b;},0)/ages.length);
       Q_GFC.pf=Math.round(MEMBERS.filter(function(m){return(m.gender||'M').toUpperCase()==='F';}).length/MEMBERS.length*100);
@@ -4115,20 +4281,26 @@ function gfcBuildPDF(){
 /* ═══════════════════════════════════════════════════════
    GFS — FUNERAL SERVICES WIZARD
 ════════════════════════════════════════════════════════ */
-let Q_GFS={
-  company:'',address:'',city:'Blantyre',date:'',ref:'',
-  n_single:0,n_family:0,n_extra_ch:0,n_dep_u70:0,n_dep_o70:0,
-  inc_cash:false,inc_transport:false,
-  sal_bill:0,loading:0,
-  package_tier:'exe', rate_card_only:false,
-  custom_corp_covers:[4000000,5000000], custom_dep_covers:[1000000,2000000],
-};
+function defaultQGFS(){
+  return {
+    company:'',address:'',city:'Blantyre',date:'',ref:'',
+    n_single:0,n_family:0,n_extra_ch:0,n_dep_u70:0,n_dep_o70:0,
+    inc_cash:false,inc_transport:false,
+    sal_bill:0,loading:0,
+    package_tier:'exe', rate_card_only:false,
+    custom_corp_covers:[4000000,5000000], custom_dep_covers:[1000000,2000000],
+  };
+}
+let Q_GFS=defaultQGFS();
 let GFS_STEP=1, GFS_RESULTS=null, GFS_COMPUTING=false;
 const GFS_STEP_TITLES=['Client Details','Membership Composition','Package Options','Quote Summary'];
 
 function startGFSWizard(){
   PRODUCT='gfs';
   GFS_STEP=1; GFS_RESULTS=null; GFS_COMPUTING=false;
+  // Full reset (not a merge) so nothing from whatever quote was last open
+  // in this wizard can leak into the new one
+  Object.assign(Q_GFS,defaultQGFS());
   Q_GFS.date=new Date().toISOString().split('T')[0];
   Q_GFS.ref='gfs_'+Date.now();
   ACTING_FA=null;
@@ -4908,18 +5080,24 @@ function gfsBuildPDF(){
 /* ═══════════════════════════════════════════════════════
    GCL — GROUP CREDIT LIFE WIZARD
 ════════════════════════════════════════════════════════ */
-let Q_GCL={
-  company:'',address:'',city:'Blantyre',date:'',ref:'',
-  n:100,avg_loan:1000000,total_loan:0,avg_term:36,avg_age:35,
-  inc_ci:true,inc_hosp:false,inc_fun:true,inc_ret:false,
-  loading:0,
-};
+function defaultQGCL(){
+  return {
+    company:'',address:'',city:'Blantyre',date:'',ref:'',
+    n:100,avg_loan:1000000,total_loan:0,avg_term:36,avg_age:35,
+    inc_ci:true,inc_hosp:false,inc_fun:true,inc_ret:false,
+    loading:0,
+  };
+}
+let Q_GCL=defaultQGCL();
 let GCL_STEP=1, GCL_RESULTS=null, GCL_COMPUTING=false;
 const GCL_STEP_TITLES=['Client Details','Loan Book Details','Rider Selection','Quote Summary'];
 
 function startGCLWizard(){
   PRODUCT='gcl';
   GCL_STEP=1; GCL_RESULTS=null; GCL_COMPUTING=false;
+  // Full reset (not a merge) so nothing from whatever quote was last open
+  // in this wizard can leak into the new one
+  Object.assign(Q_GCL,defaultQGCL());
   Q_GCL.date=new Date().toISOString().split('T')[0];
   Q_GCL.ref='gcl_'+Date.now();
   ACTING_FA=null;
@@ -5377,6 +5555,477 @@ function gclBuildPDF(){
   }
 }
 
+/* ═══════════════════════════════════════════════════════
+   RET — RETRENCHMENT & ABSCONDENCE WIZARD
+════════════════════════════════════════════════════════ */
+function defaultQRET(){
+  return {
+    company:'',address:'',city:'Blantyre',date:'',ref:'',
+    n:100,avg_loan:1000000,total_loan:0,avg_term:36,avg_instalment:0,
+    inc_abs:false,payment_mode:'oncoff',
+    loading:0,
+  };
+}
+let Q_RET=defaultQRET();
+let RET_STEP=1, RET_RESULTS=null, RET_COMPUTING=false;
+const RET_STEP_TITLES=['Client Details','Loan Book Details','Cover Options','Quote Summary'];
+
+function startRETWizard(){
+  PRODUCT='ret';
+  RET_STEP=1; RET_RESULTS=null; RET_COMPUTING=false;
+  // Full reset (not a merge) so nothing from whatever quote was last open
+  // in this wizard can leak into the new one
+  Object.assign(Q_RET,defaultQRET());
+  Q_RET.date=new Date().toISOString().split('T')[0];
+  Q_RET.ref='ret_'+Date.now();
+  ACTING_FA=null;
+  showView('view-wizard-ret');
+  loadFADropdown();
+  retShowStep(1);
+}
+
+function retShowStep(n){
+  RET_STEP=n;
+  for(let i=1;i<=4;i++){
+    const pi=document.getElementById('ret-pi'+i);
+    if(!pi)continue;
+    pi.classList.toggle('on',i===n);
+    pi.classList.toggle('done',i<n);
+    const dot=pi.querySelector('.pdot');
+    if(dot)dot.textContent=i<n?'✓':i;
+  }
+  const t=document.getElementById('ret-step-title');
+  if(t)t.textContent=RET_STEP_TITLES[n-1];
+  for(let i=1;i<=4;i++){
+    const s=document.getElementById('ret-s'+i);
+    if(s)s.classList.toggle('on',i===n);
+  }
+  if(n===1){
+    setV('ret-company',Q_RET.company);setV('ret-address',Q_RET.address);
+    setV('ret-city',Q_RET.city);setV('ret-date',Q_RET.date);setV('ret-ref',Q_RET.ref);
+  }
+  if(n===2){
+    setV('ret-n',Q_RET.n||'');setV('ret-avg-loan',Q_RET.avg_loan||'');
+    setV('ret-total-loan',Q_RET.total_loan||'');
+    setV('ret-avg-term',Q_RET.avg_term||36);setV('ret-avg-inst',Q_RET.avg_instalment||'');
+  }
+  if(n===3){
+    const setChk=(id,val)=>{const el=document.getElementById(id);if(el)el.checked=val;};
+    setChk('ret-inc-abs',Q_RET.inc_abs);
+    setV('ret-payment-mode',Q_RET.payment_mode||'oncoff');
+    setV('ret-loading',Q_RET.loading||0);
+  }
+  if(n===4)retRenderSummary();
+  const back=document.getElementById('ret-nav-back');
+  const next=document.getElementById('ret-nav-next');
+  if(back)back.textContent=n===1?'← Home':'← Back';
+  if(next){
+    next.textContent=n===4&&RET_RESULTS?'New Quote':n===4?'':'Next →';
+    next.style.display=n===4&&!RET_RESULTS?'none':'';
+  }
+  const v=document.getElementById('view-wizard-ret');
+  if(v)v.scrollTop=0;
+}
+
+function retClearErr(id){const e=document.getElementById(id);if(e)e.innerHTML='';}
+function retShowErr(id,msg){const e=document.getElementById(id);if(e)e.innerHTML='<div class="msg err">'+msg+'</div>';}
+
+function retValidateStep(n){
+  if(n===1){
+    const co=document.getElementById('ret-company')?.value.trim();
+    const dt=document.getElementById('ret-date')?.value;
+    if(!co){retShowErr('ret-s1-err','Lender / institution name is required');return false;}
+    if(!dt){retShowErr('ret-s1-err','Commencement date is required');return false;}
+    retClearErr('ret-s1-err');
+    Q_RET.company=co;
+    Q_RET.address=document.getElementById('ret-address')?.value.trim()||'';
+    Q_RET.city=document.getElementById('ret-city')?.value.trim()||'Blantyre';
+    Q_RET.date=dt;
+    Q_RET.ref=document.getElementById('ret-ref')?.value.trim()||'ret_'+Date.now();
+    return true;
+  }
+  if(n===2){
+    const nv=parseInt(document.getElementById('ret-n')?.value);
+    const avgLoan=parseFloat(document.getElementById('ret-avg-loan')?.value);
+    const term=parseInt(document.getElementById('ret-avg-term')?.value);
+    if(!nv||nv<1){retShowErr('ret-s2-err','Number of borrowers must be at least 1');return false;}
+    if(!avgLoan||avgLoan<=0){retShowErr('ret-s2-err','Average loan amount must be greater than 0');return false;}
+    if(!term||term<1){retShowErr('ret-s2-err','Average loan term is required');return false;}
+    retClearErr('ret-s2-err');
+    Q_RET.n=nv; Q_RET.avg_loan=avgLoan;
+    Q_RET.total_loan=parseFloat(document.getElementById('ret-total-loan')?.value)||0;
+    Q_RET.avg_term=term;
+    Q_RET.avg_instalment=parseFloat(document.getElementById('ret-avg-inst')?.value)||0;
+    return true;
+  }
+  if(n===3){
+    Q_RET.inc_abs=!!document.getElementById('ret-inc-abs')?.checked;
+    Q_RET.payment_mode=document.getElementById('ret-payment-mode')?.value||'oncoff';
+    Q_RET.loading=parseFloat(document.getElementById('ret-loading')?.value)||0;
+    retClearErr('ret-s3-err');
+    return true;
+  }
+  return true;
+}
+
+async function navNextRET(){
+  if(RET_STEP===4){startRETWizard();return;}
+  if(!retValidateStep(RET_STEP))return;
+  retShowStep(RET_STEP+1);
+}
+
+function navBackRET(){
+  if(RET_STEP===1){showHome();return;}
+  retShowStep(RET_STEP-1);
+}
+
+async function retRenderSummary(){
+  const sc=document.getElementById('ret-summary-content');
+  if(!sc)return;
+  if(RET_RESULTS){retDisplaySummary();return;}
+  sc.innerHTML='<div style="text-align:center;padding:40px 20px">'
+    +'<div class="spin" style="margin:0 auto 14px"></div>'
+    +'<p style="color:#641414;font-size:14px;font-weight:700">Calculating your premium&hellip;</p>'
+    +'<p style="color:#AAA;font-size:12px">Connecting to GAS pricing engine</p></div>';
+  const next=document.getElementById('ret-nav-next');
+  if(next)next.style.display='none';
+  RET_COMPUTING=true;
+  try{
+    const gasUrl=(ADM.gasUrl||'').trim();
+    if(!gasUrl){sc.innerHTML='<div class="msg err">GAS URL not configured. Go to Admin Settings.</div>';RET_COMPUTING=false;return;}
+    const token=getSessionToken();
+    const qEnc=encodeURIComponent(JSON.stringify({
+      company:Q_RET.company, n:Q_RET.n, avg_loan:Q_RET.avg_loan,
+      total_loan:Q_RET.total_loan||undefined, avg_term:Q_RET.avg_term,
+      avg_instalment:Q_RET.avg_instalment||undefined,
+      inc_abs:Q_RET.inc_abs, payment_mode:Q_RET.payment_mode,
+    }));
+    let url=gasUrl+'?action=calcRET&q='+qEnc+(token?'&token='+encodeURIComponent(token):'');
+    if(CURRENT_USER?.role==='admin'){
+      const ap={};ADM_META.forEach(([k])=>{if(typeof ADM[k]==='number')ap[k]=ADM[k];});
+      url+='&adm='+encodeURIComponent(JSON.stringify(ap));
+    }
+    const resp=await fetch(url);
+    const data=await resp.json();
+    if(data.error)throw new Error(data.error);
+    if(Q_RET.loading&&Q_RET.loading!==0){
+      const factor=1+Q_RET.loading/100;
+      data.oncoff_per_loan*=factor; data.oncoff_net*=factor; data.oncoff_total*=factor;
+      data.monthly_per_loan*=factor; data.monthly_net*=factor; data.monthly_total*=factor;
+      data.total_pa*=factor;
+      data.oncoff_rate_pct=data.total_loan>0?(data.oncoff_total/data.total_loan)*100:data.oncoff_rate_pct;
+      data.monthly_rate_pct=data.total_loan>0?(data.monthly_total/data.total_loan)*100:data.monthly_rate_pct;
+      data.loading_applied=Q_RET.loading;
+    }
+    RET_RESULTS=data;
+    Q_RET.acting_fa_snapshot=getActingSignatory();
+    retAutoSave();
+    retSaveToSheet(true);
+    retDisplaySummary();
+  }catch(err){
+    sc.innerHTML='<div class="msg err" style="margin:20px">Error: '+err.message+'</div>';
+    showToast(err.message||'Calculation failed','error');
+  }finally{RET_COMPUTING=false;}
+}
+
+function retDisplaySummary(){
+  const r=RET_RESULTS;
+  if(!r)return;
+  const sc=document.getElementById('ret-summary-content');
+  if(!sc)return;
+  const isMonthly=Q_RET.payment_mode==='monthly';
+
+  sc.innerHTML=
+    '<div class="sum-sec"><div class="sum-lbl">LOAN BOOK OVERVIEW</div>'
+    +'<div class="sum-row"><span>Lender</span><span>'+Q_RET.company+'</span></div>'
+    +'<div class="sum-row"><span>Borrowers</span><span>'+fmt(Q_RET.n)+'</span></div>'
+    +'<div class="sum-row"><span>Average Loan</span><span>MWK '+fmt(Q_RET.avg_loan)+'</span></div>'
+    +'<div class="sum-row"><span>Total Loan Book</span><span>MWK '+fmt(r.total_loan)+'</span></div>'
+    +'<div class="sum-row"><span>Average Term</span><span>'+r.avg_term+' months</span></div>'
+    +(Q_RET.loading&&Q_RET.loading!==0?'<div class="sum-row" style="border-top:1px dashed #EAE4DA;margin-top:4px;padding-top:4px"><span style="font-size:10.5px;color:#AAA">Int: Premium Adjustment</span><span style="color:'+(Q_RET.loading>0?'#B44':'#1D6A45')+';font-size:11px">'+(Q_RET.loading>0?'+':'')+Q_RET.loading+'%</span></div>':'')
+    +'</div>'
+    +'<div class="sum-sec"><div class="sum-lbl">COVER OPTIONS</div>'
+    +'<div class="sum-row"><span>Abscondence Rider</span><span>'+(r.inc_abs?'Included':'Not included')+'</span></div>'
+    +'<div class="sum-row"><span>Payment Mode</span><span>'+(isMonthly?'Monthly collection':'Once-off (single premium)')+'</span></div>'
+    +'</div>'
+    +'<div class="sum-sec"><div class="sum-lbl">PREMIUM SUMMARY</div>'
+    +'<div class="sum-row'+(!isMonthly?' hi':'')+'"><span>Once-off Single Premium (Total)</span><span>MWK '+fmt(Math.round(r.oncoff_total))+'</span></div>'
+    +'<div class="sum-row"><span>Rate on Loan Book (once-off)</span><span>'+r.oncoff_rate_pct.toFixed(3)+'%</span></div>'
+    +'<div class="sum-row'+(isMonthly?' hi':'')+'"><span>Monthly Collection (Total)</span><span>MWK '+fmt(Math.round(r.monthly_total))+'</span></div>'
+    +'<div class="sum-row"><span>Rate on Loan Book (monthly)</span><span>'+r.monthly_rate_pct.toFixed(3)+'%</span></div>'
+    +'<div class="sum-row"><span>Premium per Borrower ('+(isMonthly?'monthly':'once-off')+')</span><span>MWK '+fmt(Math.round((isMonthly?r.monthly_total:r.oncoff_total)/(Q_RET.n||1)))+'</span></div>'
+    +'</div>'
+    +'<div class="sum-sec"><div class="sum-lbl">BENEFIT REFERENCE</div>'
+    +'<div class="sum-row"><span>Benefit per Borrower</span><span>MWK '+fmt(Math.round(r.benefit_per_member))+'</span></div>'
+    +'<div class="sum-row"><span>Scheme Aggregate Benefit</span><span>MWK '+fmt(Math.round(r.scheme_benefit_agg))+'</span></div>'
+    +'<div class="sum-row"><span>Benefit Period</span><span>'+r.benefit_months+' months of instalments</span></div>'
+    +(r.inc_abs?'<div class="sum-row"><span>Abscondence Qualifying Period</span><span>'+r.qualifying_days+' days</span></div>':'')
+    +'</div>'
+    +'<div style="display:flex;gap:10px;margin-top:4px">'
+    +'<button class="btn primary" style="flex:1" onclick="retBuildPDF()">&#8681; Download PDF Quote</button>'
+    +'<button class="btn" style="flex:1" onclick="retSaveToSheet()">&#9729; Save to GAS</button>'
+    +'</div>';
+
+  const next=document.getElementById('ret-nav-next');
+  if(next){next.textContent='New Quote';next.style.display='';}
+}
+
+function retAutoSave(){
+  if(!RET_RESULTS)return;
+  try{
+    const id=Q_RET.ref||('ret_'+Date.now());
+    const entry={id,product:'ret',mode:Q_RET.payment_mode||'oncoff',
+      q:{...Q_RET},results:{...RET_RESULTS},
+      savedAt:new Date().toISOString(),autoSaved:true};
+    const idx=SAVED_QUOTES.findIndex(function(x){return x.id===id;});
+    if(idx>=0)SAVED_QUOTES[idx]=entry; else SAVED_QUOTES.unshift(entry);
+    if(SAVED_QUOTES.length>200)SAVED_QUOTES=SAVED_QUOTES.slice(0,200);
+    localStorage.setItem('vla_gla_saved',JSON.stringify(SAVED_QUOTES));
+  }catch(e){}
+}
+
+function retSaveToSheet(silent){
+  if(!RET_RESULTS)return;
+  const gasUrl=(ADM.gasUrl||'').trim();
+  const token=getSessionToken();
+  if(!gasUrl||!token){if(!silent)showToast('Save requires a GAS connection and active session','error');return;}
+  const isMonthly=Q_RET.payment_mode==='monthly';
+  const payload={
+    ref:Q_RET.ref, product:'ret', mode:Q_RET.payment_mode||'oncoff',
+    prepBy:(CURRENT_USER?.fullName||CURRENT_USER?.name||''),
+    preparedByUsername:CURRENT_USER?.username||CURRENT_USER?.name||'',
+    actingFAUsername:ACTING_FA?.username||'',
+    company:Q_RET.company, date:Q_RET.date, n:Q_RET.n,
+    avg_loan:Q_RET.avg_loan, total_loan:RET_RESULTS.total_loan||0,
+    avg_term:Q_RET.avg_term, avg_instalment:Q_RET.avg_instalment,
+    inc_abs:Q_RET.inc_abs, payment_mode:Q_RET.payment_mode,
+    total_pa:RET_RESULTS.total_pa,
+    rate_pct:isMonthly?RET_RESULTS.monthly_rate_pct:RET_RESULTS.oncoff_rate_pct,
+    q:JSON.stringify(Q_RET), results:JSON.stringify(RET_RESULTS)
+  };
+  const url=gasUrl+'?action=saveQuoteRET&data='+encodeURIComponent(JSON.stringify(payload))+'&token='+encodeURIComponent(token);
+  fetch(url)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      if(data.status==='ok'){
+        if(!silent)showToast(data.updated?'Quote already in sheet — updated in place, no duplicate':'RET quote saved to RET Quotes sheet ✓','success');
+      } else {
+        const msg=data.message||data.error||'Unknown error';
+        if(!silent){
+          if(msg.includes('Unknown action'))showToast('GAS deployment is outdated — please redeploy VLA_GLA_GAS.gs','error',7000);
+          else showToast('GAS error: '+msg,'error');
+        }
+      }
+    })
+    .catch(function(){if(!silent)showToast('Save failed — check GAS connection','error');});
+}
+
+/* ─── RET PDF BUILDER ─────────────────────────────────────────── */
+function retBuildPDF(){
+  if(!RET_RESULTS){showToast('Run the quote calculation first','error');return;}
+  const JsPDF=window.jsPDF||(window.jspdf&&window.jspdf.jsPDF);
+  if(!JsPDF){showToast('PDF library not loaded — please refresh the page.','error');return;}
+  try{
+    const r=RET_RESULTS;
+    const q=Q_RET;
+    const isMonthly=q.payment_mode==='monthly';
+    const doc=new JsPDF('p','mm','a4');
+    const W=210,H=297,ML=18,MR=18,CW=W-ML-MR;
+    const M=[100,20,20],TX=[30,20,20],GR=[120,110,100];
+    let y=0;
+
+    function f2(v){return v==null?'—':Math.round(v).toLocaleString();}
+
+    function tblHdr(cols){
+      doc.setFillColor(...M);doc.rect(ML,y,CW,6,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(255,255,255);
+      let cx=ML+3;
+      cols.forEach(function(col){doc.text(col.label,cx,y+4.2);cx+=col.w;});
+      y+=6;
+    }
+    function tblRow(cols,row,rh,bg){
+      doc.setFillColor(...bg);doc.rect(ML,y,CW,rh,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+      let cx=ML+3;
+      cols.forEach(function(col){
+        const txt=String(row[col.key]||'');
+        if(col.r)doc.text(txt,cx+col.w-3,y+rh-2,{align:'right'});
+        else doc.text(doc.splitTextToSize(txt,col.w-5)[0],cx,y+rh-2);
+        cx+=col.w;
+      });
+      y+=rh;
+    }
+
+    // ── PAGE 1 — Letterhead ──────────────────────────────────────
+    const hdrH=(238/1700)*W;
+    doc.addImage(VLA_HEADER_IMG,'JPEG',0,0,W,hdrH);
+    y=hdrH+6;
+
+    const dtStr=new Date(q.date||Date.now()).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+    const intCode=r.loading_applied&&r.loading_applied!==0
+      ?(r.loading_applied>0?'L+':' D')+Math.abs(r.loading_applied)
+      :null;
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...TX);
+    doc.text(dtStr,ML,y);
+    doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text('Quote Reference: '+q.ref,W-MR,y,{align:'right'});
+    if(intCode){
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(160,140,130);
+      doc.text('[Int: '+intCode+']',W-MR,y+4,{align:'right'});
+    }
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(...TX);
+    y+=8;
+
+    doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text((q.company||'').toUpperCase(),ML,y);y+=5;
+    doc.setFont('helvetica','normal');
+    if(q.address){doc.text(q.address,ML,y);y+=4;}
+    doc.text(q.city||'Blantyre',ML,y);y+=4;
+    doc.text('Malawi',ML,y);y+=8;
+
+    doc.text('Dear Sir/Madam,',ML,y);y+=6;
+    doc.setFont('helvetica','bold');doc.setFontSize(10);
+    doc.text('RE: QUOTATION FOR RETRENCHMENT & ABSCONDENCE COVER',ML,y);y+=4;
+    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=4;
+    doc.setFont('helvetica','normal');doc.setFontSize(9.5);
+    doc.text('We write to formally submit our quotation for Retrenchment & Abscondence cover as follows:',ML,y,{maxWidth:CW});y+=8;
+
+    // ── LOAN BOOK DETAILS ─────────────────────────────────────────
+    tblHdr([{label:'LOAN BOOK DETAILS',w:CW}]);
+    [{lbl:'Period of Insurance',val:'1 Year and annually thereafter'},
+     {lbl:'Number of Borrowers', val:f2(q.n)},
+     {lbl:'Average Loan Amount', val:'MWK '+f2(q.avg_loan)},
+     {lbl:'Total Loan Book',     val:'MWK '+f2(r.total_loan)},
+     {lbl:'Average Loan Term',   val:r.avg_term+' months'},
+     {lbl:'Commencement Date',   val:dtStr},
+    ].forEach(function(row,i){
+      tblRow([{key:'lbl',w:75},{key:'val',w:CW-75}],row,7,i%2===0?[255,255,255]:[248,245,241]);
+    });
+    y+=4;
+
+    // ── COVER OPTIONS ───────────────────────────────────────────────
+    tblHdr([{label:'COVER OPTIONS',w:CW}]);
+    [{name:'Retrenchment',desc:'Once-off or monthly premium — pays '+r.benefit_months+' months of instalments on valid retrenchment'},
+     r.inc_abs?{name:'Abscondence (Rider)',desc:'Add-on cover if the borrower absconds after a '+r.qualifying_days+'-day qualifying period'}:null,
+     {name:'Payment Mode',desc:isMonthly?'Monthly collection, added to the loan instalment':'Once-off single premium at loan disbursement'},
+    ].filter(Boolean).forEach(function(row,i){
+      tblRow([{key:'name',w:55},{key:'desc',w:CW-55}],row,7,i%2===0?[255,255,255]:[248,245,241]);
+    });
+    y+=4;
+
+    // ── PREMIUM SUMMARY ───────────────────────────────────────────
+    tblHdr([{label:'PREMIUM SUMMARY',w:CW}]);
+    const pCols=[{key:'item',w:CW-55},{key:'val',w:55,r:true}];
+    const pRows=[
+      {item:(isMonthly?'MONTHLY COLLECTION (TOTAL)':'ONCE-OFF SINGLE PREMIUM (TOTAL)'), val:'MWK '+f2(isMonthly?r.monthly_total:r.oncoff_total), _bold:true},
+      {item:'Rate on Loan Book (once-off)', val:r.oncoff_rate_pct.toFixed(3)+'%'},
+      {item:'Rate on Loan Book (monthly)', val:r.monthly_rate_pct.toFixed(3)+'%'},
+      {item:'Premium per Borrower', val:'MWK '+f2((isMonthly?r.monthly_total:r.oncoff_total)/(q.n||1))},
+    ];
+    pRows.forEach(function(row,i){
+      const isTotal=!!row._bold;
+      const bg=isTotal?[235,225,215]:(i%2===0?[255,255,255]:[248,245,241]);
+      if(isTotal)doc.setFont('helvetica','bold');
+      tblRow(pCols,row,7,bg);
+      if(isTotal)doc.setFont('helvetica','normal');
+    });
+    y+=4;
+
+    // ── VALIDITY + SIGNATORIES ────────────────────────────────────
+    if(y>H-52){doc.addPage();y=20;}
+    doc.setFillColor(...M);doc.rect(ML,y,CW,0.4,'F');y+=4;
+    doc.setFont('helvetica','italic');doc.setFontSize(8.5);doc.setTextColor(...GR);
+    doc.text('This quotation is valid for '+(ADM.validDays||30)+' days from the date of issue and is subject to the satisfactory completion of all required documentation. Premiums are reviewed annually.',ML,y,{maxWidth:CW});
+    y+=8;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+    doc.text('For further clarification, please do not hesitate to contact the undersigned.',ML,y);y+=10;
+
+    if(y>H-22){doc.addPage();y=20;}
+    const KEN_EMAIL='kphoya@vanguardlifemw.com';
+    const actingSig=getActingSignatory(q.acting_fa_snapshot);
+    const isKenActing=(actingSig[2]||'').toLowerCase()===KEN_EMAIL;
+    const sigs=isKenActing?[actingSig]:[actingSig,['Ken Andrew Phoya','Group Business Marketing Manager',KEN_EMAIL]];
+    const sigW=CW/sigs.length;
+    doc.setFillColor(...M);doc.rect(ML,y-2,CW,0.5,'F');y+=3;
+    sigs.forEach(function([nm,title,email],i){
+      const sx=ML+i*sigW;
+      doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(...TX);
+      doc.text(nm,sx+sigW/2,y,{align:'center'});
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...GR);
+      doc.text(title,sx+sigW/2,y+5,{align:'center'});
+      doc.text(email,sx+sigW/2,y+10,{align:'center'});
+    });
+
+    // ── PAGE 2 — Key Policy Terms + Exclusions ────────────────────
+    doc.addPage();y=28;
+    doc.setFillColor(...M);doc.rect(ML,y,CW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+    doc.text('KEY POLICY TERMS',ML+4,y+5);y+=13;
+
+    function secHdr(txt){
+      doc.setFont('helvetica','bold');doc.setFontSize(9.5);doc.setTextColor(...M);
+      doc.text(txt,ML,y);
+      doc.setFillColor(...M);doc.rect(ML,y+1.5,CW,0.3,'F');
+      y+=8;
+    }
+    function bullet(txt){
+      doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+      const lines=doc.splitTextToSize(txt,CW-6);
+      doc.text('•',ML,y);
+      doc.text(lines,ML+5,y);
+      y+=lines.length*5+1;
+    }
+
+    secHdr('Cover & Eligibility');
+    bullet('Cover applies to all qualifying borrowers at the date of loan disbursement, subject to the maximum age and loan limits in force at the Effective Date.');
+    bullet('The premium (once-off or monthly, as selected) is payable for the full term of the loan.');
+    bullet('Cover terminates on the earlier of full loan repayment or settlement of a valid claim.');
+    y+=3;
+
+    secHdr('Claims');
+    bullet('Retrenchment: a valid claim requires documented evidence of involuntary retrenchment from the employer, and pays up to '+r.benefit_months+' months of instalments, subject to the aggregate annual cap in force.');
+    if(r.inc_abs)bullet('Abscondence: a valid claim requires evidence that the borrower could not be located for a continuous qualifying period of '+r.qualifying_days+' days.');
+    bullet('Claims must be submitted with a duly completed claim form and all supporting documentation required by the underwriter.');
+    y+=3;
+
+    secHdr('Exclusions');
+    bullet('Voluntary resignation, retirement, or dismissal for misconduct.');
+    bullet('Retrenchment or absence known to, or notified to, the borrower before cover incepted.');
+    bullet('Fraudulent or non-compliant claims.');
+    y+=8;
+
+    doc.setFillColor(...M);doc.rect(ML,y,CW,7,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+    doc.text('GENERAL EXCLUSIONS',ML+4,y+5);y+=11;
+    doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(...TX);
+    ['Own act of omission or negligence','Self-inflicted unemployment',
+     'Alcohol or drug-related causes','Fraudulent acts',
+     'Hazardous leisure activities (winter sports, diving, rock climbing, etc.)',
+     'Active service or duty in armed forces',
+     'Riot, civil commotion, strikes, labour disturbances or acts of terrorism',
+     'War risk, act of foreign enemy, hostilities or civil war',
+     'Nuclear events','Deliberate exposure to exceptional danger',
+    ].forEach(function(e){doc.text('• '+e,ML,y);y+=5.5;});
+
+    // ── Footer on all pages ───────────────────────────────────────
+    const ftrH=22;
+    const pg=doc.internal.getNumberOfPages();
+    for(let p=1;p<=pg;p++){
+      doc.setPage(p);
+      doc.addImage(VLA_FOOTER_IMG,'JPEG',0,H-ftrH,W,ftrH);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(...GR);
+      doc.text('Page '+p+' of '+pg,W-MR,H-6,{align:'right'});
+    }
+
+    doc.save('VLA-RET-'+(q.company||'Quote').replace(/[^A-Za-z0-9]/g,'_')+'-'+q.ref+'.pdf');
+    archiveGeneratedPDF('ret',doc,q.ref,q.company);
+    showToast('PDF quote downloaded','success');
+  }catch(err){
+    showToast('PDF generation failed: '+err.message,'error');
+    console.error(err);
+  }
+}
+
 function showHome(){
   HOME_FILTER='all';
   // Reset filter tabs to "All" visually
@@ -5406,8 +6055,9 @@ function startQuote(m){
   PRODUCT='gla';
   MODE=m;STEP=1;MEMBERS=[];RESULTS=null;
   ACTING_FA=null;
-  // reset form state
-  Object.assign(Q,{company:'',city:'',ref:'',prepby:'',date:'',n:'',sal:'',age:'',pf:0.17,sec:'FIN',mult:3,inc_funeral:true,f_scope:'member_and_dependants',f_mBen:3000000,f_nCh:2,f_cPct:0.50,f_nPar:0,f_pPct:0.25,funeral_mode:'single',funeral_categories:[],inc_ci:true,ci_cap:'100_pct',inc_dis:true,dis_cap:'follow_gla',inc_ad:true,inc_sp:true,sp_pct:0.50,sp_mar:0.50,inc_adb:false,adb_accel_pct:0.20,inc_edu:false,edu_fee_annual:500000,edu_max_children:3,edu_max_years:6,edu_discount_rate:0.15,edu_pct_with_kids:'auto',edu_avg_kids:'auto',disc:0,load:0,pc_on:false,pc_r:0.25,pc_e:0.20,coverAll:true,coverRange:'all'});
+  // reset form state — full reset (not a merge) so nothing from whatever
+  // quote was last open in this wizard can leak into the new one
+  Object.assign(Q,defaultQ());
   // Populate sector dropdown
   const secEl=document.getElementById('q-sec');
   secEl.innerHTML=Object.entries(SECTORS).map(([k,v])=>`<option value="${k}">${v.l} (×${v.f})</option>`).join('');
@@ -5476,10 +6126,14 @@ let FA_LIST=[];       // cached list of role==='fa' users
 // Populate the "Quote on Behalf of" dropdown for admin/ts users; hidden for FA role.
 async function loadFADropdown(){
   const canActOnBehalf=CURRENT_USER&&(CURRENT_USER.role==='admin'||CURRENT_USER.role==='ts');
-  const glaField=document.getElementById('fa-sel-field-gla');
-  const gfcField=document.getElementById('fa-sel-field-gfc');
-  if(glaField)glaField.style.display=canActOnBehalf?'':'none';
-  if(gfcField)gfcField.style.display=canActOnBehalf?'':'none';
+  // One "Quote on Behalf of" field + select per product wizard, all following the
+  // same fa-sel-field-<product> / <product>-fa-select naming convention (gla uses
+  // q-fa-select for legacy reasons — every other product is prefixed by its code).
+  const PRODUCTS_WITH_FA=['gla','gfc','gfs','gcl','ret'];
+  PRODUCTS_WITH_FA.forEach(function(p){
+    const field=document.getElementById('fa-sel-field-'+p);
+    if(field)field.style.display=canActOnBehalf?'':'none';
+  });
   if(!canActOnBehalf)return;
   try{
     const gasUrl=(ADM.gasUrl||'').trim();
@@ -5491,7 +6145,7 @@ async function loadFADropdown(){
     FA_LIST=data.users.filter(function(u){return u.role==='fa';});
     const optsHtml='<option value="">— Myself —</option>'
       +FA_LIST.map(function(u){return '<option value="'+u.username+'">'+u.fullName+'</option>';}).join('');
-    ['q-fa-select','gfc-fa-select'].forEach(function(id){
+    PRODUCTS_WITH_FA.map(function(p){return p==='gla'?'q-fa-select':p+'-fa-select';}).forEach(function(id){
       const el=document.getElementById(id);
       if(el)el.innerHTML=optsHtml;
     });
@@ -5549,9 +6203,9 @@ function getActingSignatory(snap){
 }
 
 function onFASelect(context){
-  const selId=context==='gfc'?'gfc-fa-select':'q-fa-select';
+  const selId=context==='gla'?'q-fa-select':context+'-fa-select';
   const uname=document.getElementById(selId)?.value||'';
-  const prepById=context==='gfc'?null:'q-prepby'; // GFC has no prepby field
+  const prepById=context==='gla'?'q-prepby':null; // only the GLA wizard has its own "Prepared By" field
   if(!uname){
     ACTING_FA=null;
     if(prepById){const el=document.getElementById(prepById);if(el&&!el.dataset.userEdited)el.value='';}
@@ -5859,7 +6513,7 @@ function buildMergedHistory(){
       id:'gas_'+(row.ref||row.savedAt||Math.random()),
       mode:row.mode||'fast',
       source:'gas',
-      product:row.product||((String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':'gla'),
+      product:row.product||((String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':(String(row.ref||'').indexOf('ret_')===0)?'ret':'gla'),
       hasFullData:!!row.hasFullData,
       savedAt:row.savedAt,
       q:{company:row.company,ref:row.ref,mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector,prepby:row.prepBy},
@@ -5892,7 +6546,7 @@ async function retroSyncAll(){
     const id='gas_sync_'+(row.ref||row.savedAt||Date.now()+'_'+Math.random());
     const entry={
       id,mode:row.mode||'fast',source:'gas',gasSync:true,
-      product:row.product||((String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':'gla'),
+      product:row.product||((String(row.ref||'').indexOf('gfc_')===0)?'gfc':(String(row.ref||'').indexOf('gfs_')===0)?'gfs':(String(row.ref||'').indexOf('gcl_')===0)?'gcl':(String(row.ref||'').indexOf('ret_')===0)?'ret':'gla'),
       savedAt:row.savedAt||new Date().toISOString(),
       q:{company:row.company,ref:row.ref||'',mult:row.multiple,sal:row.payroll,n:row.nMembers,sec:row.sector||'FIN',prepby:row.prepBy||''},
       results:{total_pa:row.annualPremium,total_pm:Math.round(row.annualPremium/12),per_mb:0,rate_pct:0,options:[],gla:0,funeral:0,ci:0,dis:0,ad:0,sp:0,nMem:row.nMembers,avgAge:0,totSal:row.payroll||0},
@@ -5973,7 +6627,7 @@ function renderHistory(){
     const r=s.results||{};
     const nMem=s.mode==='full'?(s.members?.length||r.nMem||s.q?.n||'—'):s.q?.n||'—';
     const dt=new Date(s.savedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    const modeLabel=s.mode==='fast'?'Fast Quote':'Full Quote';
+    const modeLabel=s.product==='ret'?(s.mode==='monthly'?'Monthly':'Once-off'):s.mode==='fast'?'Fast Quote':'Full Quote';
     const sec=SECTORS[s.q?.sec]?.l?.split('/')[0]||'';
     const payroll=s.mode==='fast'?+s.q?.sal:(r.totSal||0);
     const isGasOnly=s.source==='gas';
@@ -6006,9 +6660,11 @@ function renderHistory(){
     const isGFC=s.product==='gfc';
     const isGFS=s.product==='gfs';
     const isGCL=s.product==='gcl';
+    const isRET=s.product==='ret';
     const exe=isGFS?(r.tiers?.exe||{}):{};
-    const annPrem=isGFC?(r.total_pa||0):isGFS?(exe.annual_gross||0):isGCL?(r.total_pa||0):(r.totPA||r.total_pa||0);
-    const moPrem=isGFC?(r.total_monthly||0):isGFS?(exe.monthly_gross||0):isGCL?(r.monthly_equiv||0):(r.total_pm||0);
+    const isRETMonthly=isRET&&s.q?.payment_mode==='monthly';
+    const annPrem=isGFC?(r.total_pa||0):isGFS?(exe.annual_gross||0):isGCL?(r.total_pa||0):isRET?(isRETMonthly?(r.monthly_total||0):(r.oncoff_total||0)):(r.totPA||r.total_pa||0);
+    const moPrem=isGFC?(r.total_monthly||0):isGFS?(exe.monthly_gross||0):isGCL?(r.monthly_equiv||0):isRET?(isRETMonthly?(r.monthly_total||0):(r.oncoff_total||0)):(r.total_pm||0);
     return '<div class="qh-card">'
       +'<div class="qh-info">'
       +'<div class="qh-co">'+( s.q?.company||'Unnamed Scheme' )+'</div>'
@@ -6018,9 +6674,11 @@ function renderHistory(){
         ?'<div class="qh-meta">'+( s.q?.ref||'No ref' )+' · GFS (Executive) · '+fmt((s.q?.n_single||0)+(s.q?.n_family||0))+' members</div>'
         :isGCL
         ?'<div class="qh-meta">'+( s.q?.ref||'No ref' )+' · GCL · '+fmt(s.q?.n||0)+' borrowers · '+r.rate_pct?.toFixed(2)+'%</div>'
+        :isRET
+        ?'<div class="qh-meta">'+( s.q?.ref||'No ref' )+' · RET · '+fmt(s.q?.n||0)+' borrowers · '+(isRETMonthly?'Monthly':'Once-off')+'</div>'
         :'<div class="qh-meta">'+( s.q?.ref||'No ref' )+' · '+( s.q?.mult||'?' )+'&times; Salary · '+fmt(nMem)+' members'+(sec?' · '+sec:'')+'</div>')
-      +'<div class="qh-prem">MWK '+fmt(moPrem)+(isGCL?' /mo equiv':' pm')+(annPrem?' / MWK '+fmt(annPrem)+(isGCL?' single prem':' p.a.'):'')+'</div>'
-      +'<div class="qh-ts">'+modeLabel+(s.autoSaved?' · Auto-saved':'')+' · '+dt+((!isGFC&&!isGFS&&!isGCL&&payroll)?' · Payroll: MWK '+fmt(payroll):'')+'</div>'
+      +'<div class="qh-prem">MWK '+fmt(moPrem)+(isGCL?' /mo equiv':isRET?(isRETMonthly?' /mo':' single'):' pm')+(annPrem&&!isRET?' / MWK '+fmt(annPrem)+(isGCL?' single prem':' p.a.'):'')+'</div>'
+      +'<div class="qh-ts">'+modeLabel+(s.autoSaved?' · Auto-saved':'')+' · '+dt+((!isGFC&&!isGFS&&!isGCL&&!isRET&&payroll)?' · Payroll: MWK '+fmt(payroll):'')+'</div>'
       +'</div>'
       +'<div class="qh-acts">'
       +actions
@@ -6059,6 +6717,14 @@ function historyPDF(id){
     Object.assign(Q_GCL,saveGCL);GCL_RESULTS=saveGCLR;
     return;
   }
+  if(sq.product==='ret'){
+    const saveRET={...Q_RET}, saveRETR=RET_RESULTS;
+    Object.assign(Q_RET,sq.q);
+    RET_RESULTS=sq.results;
+    try{retBuildPDF();}catch(e){showToast('PDF failed: '+e.message,'error');}
+    Object.assign(Q_RET,saveRET);RET_RESULTS=saveRETR;
+    return;
+  }
   // GLA (default)
   const saveQ={...Q},saveR=RESULTS,saveMode=MODE,saveMembers=[...MEMBERS];
   Object.assign(Q,sq.q);RESULTS=sq.results;MODE=sq.mode;MEMBERS=sq.members||[];
@@ -6066,13 +6732,87 @@ function historyPDF(id){
   Object.assign(Q,saveQ);RESULTS=saveR;MODE=saveMode;MEMBERS=saveMembers;
 }
 
+// Re-matches a quote's saved member snapshot back against the live,
+// company-scoped Member Database by best-effort identity (name first,
+// else gender+age-as-of-quote-date+salary), populating MDB_SEL so the
+// census picker shows the SAME rows ticked that this quote was actually
+// priced on — instead of whatever was last ticked in this browser tab,
+// which validateStep(2) would otherwise silently commit as the "revised"
+// membership. Returns the number of members that couldn't be matched
+// (e.g. the Member Database has since changed), so the caller can warn.
+function reviseMatchMembersToMDB(members,companyName,quoteDate){
+  MDB_CONTEXT=mdbKeyFor(companyName);
+  MDB_SEL.clear();
+  const db=getMDB();
+  const claimed=new Set();
+  const comm=quoteDate||new Date().toISOString().slice(0,10);
+  let unmatched=0;
+  (members||[]).forEach(function(mem){
+    let idx=mem.name?db.findIndex((d,i)=>!claimed.has(i)&&(d.name||'')===mem.name):-1;
+    if(idx<0){
+      idx=db.findIndex(function(d,i){
+        if(claimed.has(i))return false;
+        return (d.gender||'M')===mem.gender&&+d.salary===+mem.annual_salary&&parseDOB(d.dob,comm)===mem.age_nearest;
+      });
+    }
+    if(idx>=0){MDB_SEL.add(idx);claimed.add(idx);} else unmatched++;
+  });
+  return unmatched;
+}
+
 function reviseQuote(id){
   const sq=SAVED_QUOTES.find(s=>s.id===id);
   if(!sq){alert('Quote not found.');return;}
-  // Restore all state
+
+  if(sq.product==='gfc'){
+    PRODUCT='gfc';GFC_MODE=sq.mode||'fast';
+    GFC_STEP=1;GFC_RESULTS=null;GFC_COMPUTING=false;
+    Object.assign(Q_GFC,defaultQGFC(),sq.q);  // reset, THEN restore — no leftover fields
+    MEMBERS=(sq.members||[]).slice();
+    showView('view-wizard-gfc');
+    if(GFC_MODE==='full'&&MEMBERS.length>0){
+      // Re-tick this quote's actual members in the census picker (same
+      // best-effort match used for the GLA wizard below) instead of
+      // leaving MDB_SEL at whatever it was last set to.
+      const unmatched=reviseMatchMembersToMDB(MEMBERS,Q_GFC.company,Q_GFC.date);
+      if(unmatched>0){
+        showToast(unmatched+' of '+MEMBERS.length+' member(s) from this quote could not be re-matched to the current Member Database — review the ticked rows in Step 2 before regenerating.','warn',9000);
+      }
+    }
+    gfcShowStep(1);
+    return;
+  }
+  if(sq.product==='gfs'){
+    PRODUCT='gfs';GFS_STEP=1;GFS_RESULTS=null;GFS_COMPUTING=false;
+    Object.assign(Q_GFS,defaultQGFS(),sq.q);
+    showView('view-wizard-gfs');
+    gfsShowStep(1);
+    return;
+  }
+  if(sq.product==='gcl'){
+    PRODUCT='gcl';GCL_STEP=1;GCL_RESULTS=null;GCL_COMPUTING=false;
+    Object.assign(Q_GCL,defaultQGCL(),sq.q);
+    showView('view-wizard-gcl');
+    gclShowStep(1);
+    return;
+  }
+  if(sq.product==='ret'){
+    PRODUCT='ret';RET_STEP=1;RET_RESULTS=null;RET_COMPUTING=false;
+    Object.assign(Q_RET,defaultQRET(),sq.q);
+    showView('view-wizard-ret');
+    retShowStep(1);
+    return;
+  }
+
+  // GLA (default)
+  PRODUCT='gla';
   MODE=sq.mode;
-  Object.assign(Q,sq.q);
-  MEMBERS=sq.members||[];
+  // Reset Q to defaults FIRST, then overlay the saved quote — Object.assign
+  // alone (the old behaviour) only overwrites fields present in sq.q,
+  // leaving any field absent from that snapshot at whatever value the
+  // last quote open in this wizard left it at.
+  Object.assign(Q,defaultQ(),sq.q);
+  MEMBERS=(sq.members||[]).slice();
   RESULTS=null;
   // Populate step 1 fields
   const assign=(id2,val)=>{const el=document.getElementById(id2);if(el)el.value=val||'';};
@@ -6092,10 +6832,17 @@ function reviseQuote(id){
     secEl.value=Q.sec||'FIN';
     updateTierNote();
   } else if(MEMBERS.length>0){
+    // Re-tick this quote's actual members in the census picker (see
+    // reviseMatchMembersToMDB) instead of leaving MDB_SEL at whatever it
+    // was last set to — otherwise Step 2 → Next silently recomputes the
+    // premium off a different member list than the one being "revised".
+    const unmatched=reviseMatchMembersToMDB(MEMBERS,Q.company,Q.date);
+    if(unmatched>0){
+      showToast(unmatched+' of '+MEMBERS.length+' member(s) from this quote could not be re-matched to the current Member Database — review the ticked rows in Step 2 before regenerating, or the recalculated premium will reflect a different census.','warn',9000);
+    }
     const totPay=MEMBERS.reduce((s,m)=>s+m.annual_salary,0);
     const avgAge=MEMBERS.reduce((s,m)=>s+m.age_nearest,0)/MEMBERS.length;
-    renderMDB();  // refresh member DB table after load
-    // dropzone removed in new layout
+    renderMDB();  // refresh member DB table — now reflects the re-matched selection above
     const csEl=document.getElementById('cstats');if(csEl)csEl.style.display='grid';
     document.getElementById('cstats').innerHTML=[
       ['Members',fmt(MEMBERS.length)],['Males',fmt(MEMBERS.filter(m=>m.gender==='M').length)],
@@ -6136,6 +6883,14 @@ function viewQuoteSummary(id){
     GCL_RESULTS=sq.results;
     showView('view-wizard-gcl');
     gclShowStep(4);
+    return;
+  }
+  if(sq.product==='ret'){
+    PRODUCT='ret';
+    Object.assign(Q_RET,sq.q);
+    RET_RESULTS=sq.results;
+    showView('view-wizard-ret');
+    retShowStep(4);
     return;
   }
   // GLA (default)
@@ -6184,12 +6939,15 @@ function viewGASQuote(id){
   const isGFC=(s.product==='gfc');
   const isGFS=(s.product==='gfs');
   const isGCL=(s.product==='gcl');
+  const isRET=(s.product==='ret');
   const premLine=isGFC
     ?'Monthly: MWK '+fmt(r.total_monthly||0)+'  /  Annual: MWK '+fmt(r.total_pa||0)
     :isGFS
     ?'Monthly (Exe): MWK '+fmt(r.tiers?.exe?.monthly_gross||0)+'  /  Annual: MWK '+fmt(r.tiers?.exe?.annual_gross||0)
     :isGCL
     ?'Single Premium: MWK '+fmt(r.total_pa||0)+'  /  Rate: '+(r.rate_pct||0).toFixed(3)+'%'
+    :isRET
+    ?'Once-off: MWK '+fmt(r.oncoff_total||0)+'  /  Monthly: MWK '+fmt(r.monthly_total||0)
     :'Annual: MWK '+fmt(r.totPA||r.total_pa||0)+(r.total_pm?'  /  Monthly: MWK '+fmt(r.total_pm):'');
   const detail=isGFC
     ?'<p><strong>Cover Scope:</strong> '+(q.f_scope||'—')+'</p><p><strong>Avg Age:</strong> '+(q.avg_age||'—')+' yrs | <strong>Members:</strong> '+fmt(q.n||0)+'</p>'
@@ -6197,6 +6955,8 @@ function viewGASQuote(id){
     ?'<p><strong>Single / Family:</strong> '+fmt(q.n_single||0)+' / '+fmt(q.n_family||0)+'</p><p><strong>Dependants (&le;70 / 71-80):</strong> '+fmt(q.n_dep_u70||0)+' / '+fmt(q.n_dep_o70||0)+'</p>'
     :isGCL
     ?'<p><strong>Borrowers:</strong> '+fmt(q.n||0)+' | <strong>Avg Loan:</strong> MWK '+fmt(q.avg_loan||0)+'</p><p><strong>Avg Term:</strong> '+(q.avg_term||'—')+' months</p>'
+    :isRET
+    ?'<p><strong>Borrowers:</strong> '+fmt(q.n||0)+' | <strong>Avg Loan:</strong> MWK '+fmt(q.avg_loan||0)+'</p><p><strong>Avg Term:</strong> '+(q.avg_term||'—')+' months | <strong>Abscondence:</strong> '+(q.inc_abs?'Included':'Not included')+'</p>'
     :'<p><strong>GLA Multiple:</strong> '+(q.mult||'—')+'x Salary | <strong>Members:</strong> '+fmt(q.n||0)+'</p><p><strong>Payroll:</strong> MWK '+fmt(q.sal||0)+'</p>';
   const html='<div style="padding:16px;font-size:13px;line-height:1.9">'
     +'<p><strong>Company:</strong> '+(q.company||'—')+'</p>'
@@ -6250,6 +7010,17 @@ function rerunGASQuote(id){
     GCL_RESULTS=null;
     showView('view-wizard-gcl');gclShowStep(1);
     showToast('GCL wizard pre-filled — review and recalculate to generate PDF','info',5000);
+    return;
+  }
+  if(s.product==='ret'){
+    PRODUCT='ret';
+    Q_RET.company=q.company||'';Q_RET.date=q.date||'';Q_RET.ref=q.ref||('ret_'+Date.now());
+    Q_RET.n=+q.n||100;Q_RET.avg_loan=+q.avg_loan||1000000;Q_RET.total_loan=+q.total_loan||0;
+    Q_RET.avg_term=+q.avg_term||36;Q_RET.avg_instalment=+q.avg_instalment||0;
+    Q_RET.inc_abs=!!q.inc_abs;Q_RET.payment_mode=q.payment_mode||'oncoff';
+    RET_RESULTS=null;
+    showView('view-wizard-ret');retShowStep(1);
+    showToast('RET wizard pre-filled — review and recalculate to generate PDF','info',5000);
     return;
   }
   // GLA default
@@ -6499,7 +7270,7 @@ function closeQuotePreview(){document.getElementById('quote-preview-modal').clas
 function openQuotePreview(id){
   const sq=SAVED_QUOTES.find(s=>s.id===id)||HISTORY_MERGED.find(s=>s.id===id);
   if(!sq){showToast('Quote not found','error');return;}
-  if(sq.product==='gfc'){viewQuoteSummary(id);return;}  // GFC has its own summary layout
+  if(['gfc','gfs','gcl','ret'].includes(sq.product)){viewQuoteSummary(id);return;}  // these products have their own summary layout
   const r=sq.results||{},q=sq.q||{};
   const isPartial=sq.gasSync||sq.source==='gas';
   const totSal=sq.mode==='fast'?+(q.sal||0):(r.totSal||+(q.sal||0));
@@ -6808,15 +7579,20 @@ function saveMDBModal(){
   if(idx>=0){db[idx]=entry;}else{db.push(entry);}
   saveMDB(db);closeMDBModal();
   // Refresh whichever Member DB table is actually on screen — the modal is
-  // shared between the wizard's step-2 picker and the standalone admin view.
+  // shared between the GLA wizard's step-2 picker, the GFC wizard's step-2
+  // picker, and the standalone admin view.
   if(document.getElementById('mdb-tbody'))renderMDB();
+  if(document.getElementById('gfc-mdb-tbody'))renderGFCMDB();
   if(document.getElementById('mdb-tbody2'))renderMDBStandalone();
 }
 function deleteMDBMember(idx){
   showConfirm('Remove this member from the database?',function(){
     const db=getMDB();db.splice(idx,1);saveMDB(db);
     const ns=new Set();MDB_SEL.forEach(i=>{if(i<idx)ns.add(i);else if(i>idx)ns.add(i-1);});
-    MDB_SEL=ns;renderMDB();
+    MDB_SEL=ns;
+    if(document.getElementById('mdb-tbody'))renderMDB();
+    if(document.getElementById('gfc-mdb-tbody'))renderGFCMDB();
+    if(document.getElementById('mdb-tbody2'))renderMDBStandalone();
   },'Remove');
 }
 function importMDBFile(file){
@@ -6862,7 +7638,7 @@ function showView(id){
   const el=document.getElementById(id);
   if(el)el.style.display='block';
   // Sync mobile nav
-  var viewToNav={'view-home':'mn-home','view-history':'mn-hist','view-admin':'mn-admin','view-wizard':'mn-home','view-wizard-gfc':'mn-home','view-wizard-gfs':'mn-home','view-wizard-gcl':'mn-home','view-mdb':null};
+  var viewToNav={'view-home':'mn-home','view-history':'mn-hist','view-admin':'mn-admin','view-wizard':'mn-home','view-wizard-gfc':'mn-home','view-wizard-gfs':'mn-home','view-wizard-gcl':'mn-home','view-wizard-ret':'mn-home','view-mdb':null};
   document.querySelectorAll('.mn-item').forEach(function(b){b.classList.remove('active');});
   var navId=viewToNav[id];
   if(navId){var nb=document.getElementById(navId);if(nb)nb.classList.add('active');}
@@ -6925,6 +7701,8 @@ function renderHomeQuotes(){
       ?fmt(Math.round(qr.tiers?.exe?.monthly_gross||0))+' /mo'
       :prod==='gcl'
       ?fmt(Math.round(qr.total_pa||0))+' single'
+      :prod==='ret'
+      ?(q.q?.payment_mode==='monthly'?fmt(Math.round(qr.monthly_total||0))+' /mo':fmt(Math.round(qr.oncoff_total||0))+' single')
       :fmt(Math.round(qr.totPA||qr.total_pa||0));
     const isGasOnly=q.source==='gas';
     const actBtns=isGasOnly
