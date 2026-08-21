@@ -2897,11 +2897,18 @@ function renderBenefits(){
       opts+=`<option value="${v}" ${Q.f_mBen===v?'selected':''}>${fmt(v)}</option>`;
     return opts;
   });
-  const isCustomMult=![1,2,3,4,5].includes(+Q.mult);
+  // Custom mode is tracked explicitly via Q.mult_custom, not just inferred
+  // from Q.mult's value — otherwise picking "Custom…" while Q.mult already
+  // happened to equal a preset (e.g. the default of 3) left Q.mult
+  // unchanged, so this re-derived straight back to "not custom" on the
+  // very next render and the input never appeared. The OR still catches
+  // a genuinely non-preset Q.mult (e.g. from a previously-saved quote)
+  // even if the flag itself was never set.
+  const isCustomMult=!!Q.mult_custom||![1,2,3,4,5].includes(+Q.mult);
   mr.innerHTML=`
     <div class="fld" style="flex:1">
       <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--T2)">GLA Multiple (× Annual Salary)</label>
-      <select style="border:none;border-bottom:1.5px solid var(--BD);padding:7px 0;font-size:15px;font-weight:700;background:transparent;font-family:inherit;color:var(--TX);outline:none;width:100%" onchange="if(this.value==='custom'){Q.mult=isFinite(+Q.mult)&&+Q.mult>0?+Q.mult:1.5;}else{Q.mult=+this.value;}renderBenefits()">
+      <select style="border:none;border-bottom:1.5px solid var(--BD);padding:7px 0;font-size:15px;font-weight:700;background:transparent;font-family:inherit;color:var(--TX);outline:none;width:100%" onchange="if(this.value==='custom'){Q.mult_custom=true;if(!isFinite(+Q.mult)||+Q.mult<=0)Q.mult=1.5;}else{Q.mult_custom=false;Q.mult=+this.value;}renderBenefits()">
         ${[1,2,3,4,5].map(k=>`<option value="${k}" ${!isCustomMult&&+Q.mult===k?'selected':''}>${k}× Annual Salary</option>`).join('')}
         <option value="custom" ${isCustomMult?'selected':''}>Custom…</option>
       </select>
