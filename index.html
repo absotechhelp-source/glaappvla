@@ -2225,7 +2225,12 @@ function buildPDFDoc(){
 
   // GLA COVER OPTIONS — apply coverRange filter same as on-screen
   const pdfCoverRange=Q.coverRange||'all';
-  const pdfOptions=(r.options||[{k:+Q.mult||3,pa:r.total_pa||0}]).filter(({k})=>{
+  // Splice a custom multiple (e.g. 1.5×, 2.5×) into GAS's fixed 1–5 set —
+  // see matching comment in renderSummary().
+  const pdfStdOptions=r.options||[{k:+Q.mult||3,pa:r.total_pa||0}];
+  const pdfGlaOptions=pdfStdOptions.some(({k})=>k===+Q.mult)?pdfStdOptions
+    :[...pdfStdOptions,{k:+Q.mult,pa:r.total_pa}].sort((a,b)=>a.k-b.k);
+  const pdfOptions=pdfGlaOptions.filter(({k})=>{
     if(pdfCoverRange==='all')return true;
     if(pdfCoverRange==='low')return k<=3;
     if(pdfCoverRange==='high')return k>=3;
@@ -2802,7 +2807,13 @@ function renderSummary(){
 
   // Issue #4: filter options by Q.coverAll
   const coverRange=Q.coverRange||'all';
-  const optRows=r.options.filter(({k})=>{
+  // Custom multiples (e.g. 1.5×, 2.5×) aren't part of GAS's fixed 1–5
+  // comparison set — splice the actually-selected multiple in using the
+  // premium GAS already computed for it, so it still shows up as a row.
+  const stdOptions=r.options||[];
+  const glaOptions=stdOptions.some(({k})=>k===+Q.mult)?stdOptions
+    :[...stdOptions,{k:+Q.mult,pa:r.total_pa}].sort((a,b)=>a.k-b.k);
+  const optRows=glaOptions.filter(({k})=>{
     if(coverRange==='all')return true;
     if(coverRange==='low')return k<=3;
     if(coverRange==='high')return k>=3;
@@ -2886,13 +2897,22 @@ function renderBenefits(){
       opts+=`<option value="${v}" ${Q.f_mBen===v?'selected':''}>${fmt(v)}</option>`;
     return opts;
   });
+  const isCustomMult=![1,2,3,4,5].includes(+Q.mult);
   mr.innerHTML=`
     <div class="fld" style="flex:1">
       <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--T2)">GLA Multiple (× Annual Salary)</label>
-      <select style="border:none;border-bottom:1.5px solid var(--BD);padding:7px 0;font-size:15px;font-weight:700;background:transparent;font-family:inherit;color:var(--TX);outline:none;width:100%" onchange="Q.mult=+this.value;renderBenefits()">
-        ${[1,2,3,4,5].map(k=>`<option value="${k}" ${+Q.mult===k?'selected':''}>${k}× Annual Salary</option>`).join('')}
+      <select style="border:none;border-bottom:1.5px solid var(--BD);padding:7px 0;font-size:15px;font-weight:700;background:transparent;font-family:inherit;color:var(--TX);outline:none;width:100%" onchange="if(this.value==='custom'){Q.mult=isFinite(+Q.mult)&&+Q.mult>0?+Q.mult:1.5;}else{Q.mult=+this.value;}renderBenefits()">
+        ${[1,2,3,4,5].map(k=>`<option value="${k}" ${!isCustomMult&&+Q.mult===k?'selected':''}>${k}× Annual Salary</option>`).join('')}
+        <option value="custom" ${isCustomMult?'selected':''}>Custom…</option>
       </select>
-    </div>`;
+    </div>
+    ${isCustomMult?`
+    <div class="fld" style="flex:1">
+      <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--T2)">Custom Multiple (e.g. 1.5, 2.5)</label>
+      <input type="number" min="0.5" max="10" step="0.1" value="${Q.mult}" placeholder="e.g. 1.5"
+        style="border:none;border-bottom:1.5px solid var(--BD);padding:7px 0;font-size:15px;font-weight:700;background:transparent;font-family:inherit;color:var(--TX);outline:none;width:100%"
+        onchange="Q.mult=Math.min(10,Math.max(0.5,+this.value||1.5));renderBenefits()">
+    </div>`:''}`;
 
   // ── Benefit rows ─────────────────────────────────────────────────────────
   const capOpts=(field)=>`
@@ -7315,10 +7335,14 @@ function openQuotePreview(id){
 
     // GLA options table
     if(r.options&&r.options.length){
+      // Splice a custom multiple (e.g. 1.5×, 2.5×) into GAS's fixed 1–5
+      // set — see matching comment in renderSummary().
+      const savedGlaOptions=r.options.some(({k})=>k===+q.mult)?r.options
+        :[...r.options,{k:+q.mult,pa:r.total_pa}].sort((a,b)=>a.k-b.k);
       html+=`<div class="sec-hd">GLA Cover Options</div>
       <table class="vt" style="margin-bottom:14px">
         <thead><tr><th>Cover</th><th class="n">% of Payroll</th><th class="n">Annual Premium (MWK)</th><th class="n">Total Benefit (MWK)</th></tr></thead>
-        <tbody>${r.options.map(({k,pa})=>`<tr class="${k===+q.mult?'cr':''}">
+        <tbody>${savedGlaOptions.map(({k,pa})=>`<tr class="${k===+q.mult?'cr':''}">
           <td>${k}× Salary${k===+q.mult?'<span style="margin-left:8px;font-size:10px;background:#641414;color:#D8C9B4;padding:1px 7px;border-radius:2px">Selected</span>':''}</td>
           <td class="n">${fmtP2(pa/(totSal||1),2)}</td>
           <td class="n">${fmt2(pa)}</td>
